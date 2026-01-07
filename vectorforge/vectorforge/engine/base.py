@@ -50,6 +50,7 @@ class BacktestResult:
     final_capital: float = 0.0
     execution_time: float = 0.0
     mode: str = "unknown"
+    params: dict[str, Any] | None = None  # Strategy parameters used (for batch runs)
 
     def __repr__(self) -> str:
         return (
