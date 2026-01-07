@@ -44,6 +44,19 @@ class OrderType(Enum):
     LIMIT = "limit"
     STOP = "stop"
     STOP_LIMIT = "stop_limit"
+    TRAILING_STOP = "trailing_stop"
+    TRAILING_STOP_LIMIT = "trailing_stop_limit"
+
+
+class TimeInForce(Enum):
+    """Time-in-force options for orders."""
+    DAY = "day"           # Valid for the current trading day only
+    GTC = "gtc"           # Good 'til canceled
+    GTD = "gtd"           # Good 'til date
+    IOC = "ioc"           # Immediate or cancel
+    FOK = "fok"           # Fill or kill (all or nothing)
+    OPG = "opg"           # At the open
+    CLS = "cls"           # At the close
 
 
 @dataclass
@@ -68,7 +81,7 @@ class Bar:
 
 @dataclass
 class Order:
-    """Trading order."""
+    """Trading order with advanced order type support."""
     symbol: str
     side: OrderSide
     quantity: float
@@ -77,6 +90,38 @@ class Order:
     stop_price: float | None = None
     timestamp: datetime | None = None
     order_id: str = ""
+
+    # Advanced order fields
+    time_in_force: TimeInForce = TimeInForce.DAY
+    expire_date: datetime | None = None  # For GTD orders
+    trail_amount: float | None = None    # Absolute trail amount for trailing stops
+    trail_percent: float | None = None   # Percentage trail for trailing stops
+    parent_order_id: str | None = None   # For bracket orders (OCO)
+    oco_group_id: str | None = None      # One-Cancels-Other group
+
+
+@dataclass
+class BracketOrder:
+    """
+    Bracket order (entry + take profit + stop loss).
+
+    Creates three linked orders where filling the entry order
+    activates the profit target and stop loss (OCO pair).
+    """
+    entry_order: Order
+    take_profit_order: Order
+    stop_loss_order: Order
+    group_id: str = ""
+
+    def __post_init__(self):
+        """Link orders together."""
+        if not self.group_id:
+            self.group_id = f"BKT-{id(self):06d}"
+
+        self.take_profit_order.oco_group_id = self.group_id
+        self.stop_loss_order.oco_group_id = self.group_id
+        self.take_profit_order.parent_order_id = self.entry_order.order_id
+        self.stop_loss_order.parent_order_id = self.entry_order.order_id
 
 
 @dataclass
@@ -103,25 +148,86 @@ class Position:
 
 
 class SimulatedBroker:
-    """Simulates order execution with realistic costs."""
+    """
+    Simulates order execution with realistic costs and advanced order types.
+
+    Supports:
+    - Market, Limit, Stop, Stop-Limit orders
+    - Trailing stop orders (absolute and percentage)
+    - Bracket orders (OCO - One Cancels Other)
+    - Time-in-force options (DAY, GTC, GTD, IOC, FOK)
+    """
 
     def __init__(self, config: VectorForgeConfig):
         self.config = config
         self.pending_orders: list[Order] = []
+        self.active_oco_groups: dict[str, list[Order]] = {}  # OCO group tracking
+        self.trailing_stop_prices: dict[str, float] = {}  # Track trailing stop levels
         self.fills: list[Fill] = []
         self._order_counter = 0
+        self._current_date: datetime | None = None
 
     def submit_order(self, order: Order) -> str:
         """Submit an order for execution."""
         self._order_counter += 1
         order.order_id = f"ORD-{self._order_counter:06d}"
         self.pending_orders.append(order)
+
+        # Track OCO groups
+        if order.oco_group_id:
+            if order.oco_group_id not in self.active_oco_groups:
+                self.active_oco_groups[order.oco_group_id] = []
+            self.active_oco_groups[order.oco_group_id].append(order)
+
         return order.order_id
+
+    def submit_bracket_order(self, bracket: BracketOrder) -> tuple[str, str, str]:
+        """Submit a bracket order (entry + TP + SL)."""
+        entry_id = self.submit_order(bracket.entry_order)
+        tp_id = self.submit_order(bracket.take_profit_order)
+        sl_id = self.submit_order(bracket.stop_loss_order)
+        return entry_id, tp_id, sl_id
+
+    def cancel_order(self, order_id: str) -> bool:
+        """Cancel a pending order."""
+        for i, order in enumerate(self.pending_orders):
+            if order.order_id == order_id:
+                self.pending_orders.pop(i)
+                # Clean up OCO group
+                if order.oco_group_id and order.oco_group_id in self.active_oco_groups:
+                    self.active_oco_groups[order.oco_group_id] = [
+                        o for o in self.active_oco_groups[order.oco_group_id]
+                        if o.order_id != order_id
+                    ]
+                return True
+        return False
+
+    def _cancel_oco_group(self, group_id: str, except_order_id: str) -> None:
+        """Cancel all orders in an OCO group except the filled one."""
+        if group_id not in self.active_oco_groups:
+            return
+
+        orders_to_cancel = [
+            o.order_id for o in self.active_oco_groups[group_id]
+            if o.order_id != except_order_id
+        ]
+
+        for order_id in orders_to_cancel:
+            self.cancel_order(order_id)
+
+        del self.active_oco_groups[group_id]
 
     def process_bar(self, bar: Bar) -> list[Fill]:
         """Process pending orders against current bar."""
         fills = []
         remaining_orders = []
+        self._current_date = bar.timestamp
+
+        # First, update trailing stop prices
+        self._update_trailing_stops(bar)
+
+        # Check for expired orders
+        self._expire_orders(bar.timestamp)
 
         for order in self.pending_orders:
             if order.symbol != bar.symbol:
@@ -132,11 +238,83 @@ class SimulatedBroker:
             if fill:
                 fills.append(fill)
                 self.fills.append(fill)
+
+                # Handle OCO group cancellation
+                if order.oco_group_id:
+                    self._cancel_oco_group(order.oco_group_id, order.order_id)
             else:
+                # Check IOC and FOK
+                if order.time_in_force == TimeInForce.IOC:
+                    # IOC orders that don't fill immediately are cancelled
+                    continue
+                elif order.time_in_force == TimeInForce.FOK:
+                    # FOK orders that don't fill completely are cancelled
+                    continue
                 remaining_orders.append(order)
 
         self.pending_orders = remaining_orders
         return fills
+
+    def _update_trailing_stops(self, bar: Bar) -> None:
+        """Update trailing stop prices based on current bar."""
+        for order in self.pending_orders:
+            if order.order_type not in (OrderType.TRAILING_STOP, OrderType.TRAILING_STOP_LIMIT):
+                continue
+
+            if order.symbol != bar.symbol:
+                continue
+
+            key = order.order_id
+
+            if key not in self.trailing_stop_prices:
+                # Initialize trailing stop
+                if order.side == OrderSide.SELL:
+                    # Trailing stop to sell: stop price trails below high
+                    if order.trail_percent:
+                        self.trailing_stop_prices[key] = bar.high * (1 - order.trail_percent / 100)
+                    elif order.trail_amount:
+                        self.trailing_stop_prices[key] = bar.high - order.trail_amount
+                else:
+                    # Trailing stop to buy: stop price trails above low
+                    if order.trail_percent:
+                        self.trailing_stop_prices[key] = bar.low * (1 + order.trail_percent / 100)
+                    elif order.trail_amount:
+                        self.trailing_stop_prices[key] = bar.low + order.trail_amount
+            else:
+                # Update trailing stop
+                current_stop = self.trailing_stop_prices[key]
+                if order.side == OrderSide.SELL:
+                    # Move stop up with higher highs
+                    if order.trail_percent:
+                        new_stop = bar.high * (1 - order.trail_percent / 100)
+                    else:
+                        new_stop = bar.high - (order.trail_amount or 0)
+                    self.trailing_stop_prices[key] = max(current_stop, new_stop)
+                else:
+                    # Move stop down with lower lows
+                    if order.trail_percent:
+                        new_stop = bar.low * (1 + order.trail_percent / 100)
+                    else:
+                        new_stop = bar.low + (order.trail_amount or 0)
+                    self.trailing_stop_prices[key] = min(current_stop, new_stop)
+
+    def _expire_orders(self, current_time: datetime) -> None:
+        """Expire orders based on time-in-force."""
+        remaining = []
+        for order in self.pending_orders:
+            if order.time_in_force == TimeInForce.GTD:
+                if order.expire_date and current_time > order.expire_date:
+                    continue  # Order expired
+            # DAY orders expire at end of day (handled elsewhere)
+            remaining.append(order)
+        self.pending_orders = remaining
+
+    def end_of_day(self) -> None:
+        """Called at end of trading day to expire DAY orders."""
+        self.pending_orders = [
+            o for o in self.pending_orders
+            if o.time_in_force != TimeInForce.DAY
+        ]
 
     def _try_fill(self, order: Order, bar: Bar) -> Fill | None:
         """Attempt to fill an order at current bar."""
@@ -189,6 +367,154 @@ class SimulatedBroker:
                     slippage=0,
                     timestamp=bar.timestamp,
                 )
+
+        elif order.order_type == OrderType.STOP:
+            # Stop orders trigger when price crosses stop level
+            if order.stop_price is None:
+                return None
+
+            triggered = False
+            if order.side == OrderSide.BUY and bar.high >= order.stop_price:
+                triggered = True
+            elif order.side == OrderSide.SELL and bar.low <= order.stop_price:
+                triggered = True
+
+            if triggered:
+                # Convert to market order and fill
+                slippage = self._compute_slippage(order, bar)
+                base_price = order.stop_price
+                fill_price = base_price * (1 + slippage if order.side == OrderSide.BUY else 1 - slippage)
+                commission = self._compute_commission(order, fill_price)
+                return Fill(
+                    order_id=order.order_id,
+                    symbol=order.symbol,
+                    side=order.side,
+                    quantity=order.quantity,
+                    fill_price=fill_price,
+                    commission=commission,
+                    slippage=slippage * base_price * order.quantity,
+                    timestamp=bar.timestamp,
+                )
+
+        elif order.order_type == OrderType.STOP_LIMIT:
+            # Stop-limit: triggers at stop, then becomes limit order
+            if order.stop_price is None or order.limit_price is None:
+                return None
+
+            triggered = False
+            if order.side == OrderSide.BUY and bar.high >= order.stop_price:
+                triggered = True
+            elif order.side == OrderSide.SELL and bar.low <= order.stop_price:
+                triggered = True
+
+            if triggered:
+                # Check if limit can be filled
+                if order.side == OrderSide.BUY and bar.low <= order.limit_price:
+                    fill_price = min(order.limit_price, max(bar.open, order.stop_price))
+                    commission = self._compute_commission(order, fill_price)
+                    return Fill(
+                        order_id=order.order_id,
+                        symbol=order.symbol,
+                        side=order.side,
+                        quantity=order.quantity,
+                        fill_price=fill_price,
+                        commission=commission,
+                        slippage=0,
+                        timestamp=bar.timestamp,
+                    )
+                elif order.side == OrderSide.SELL and bar.high >= order.limit_price:
+                    fill_price = max(order.limit_price, min(bar.open, order.stop_price))
+                    commission = self._compute_commission(order, fill_price)
+                    return Fill(
+                        order_id=order.order_id,
+                        symbol=order.symbol,
+                        side=order.side,
+                        quantity=order.quantity,
+                        fill_price=fill_price,
+                        commission=commission,
+                        slippage=0,
+                        timestamp=bar.timestamp,
+                    )
+
+        elif order.order_type == OrderType.TRAILING_STOP:
+            # Trailing stop: uses dynamically updated stop price
+            stop_price = self.trailing_stop_prices.get(order.order_id)
+            if stop_price is None:
+                return None
+
+            triggered = False
+            if order.side == OrderSide.SELL and bar.low <= stop_price:
+                triggered = True
+            elif order.side == OrderSide.BUY and bar.high >= stop_price:
+                triggered = True
+
+            if triggered:
+                slippage = self._compute_slippage(order, bar)
+                fill_price = stop_price * (1 + slippage if order.side == OrderSide.BUY else 1 - slippage)
+                commission = self._compute_commission(order, fill_price)
+
+                # Clean up trailing stop tracking
+                del self.trailing_stop_prices[order.order_id]
+
+                return Fill(
+                    order_id=order.order_id,
+                    symbol=order.symbol,
+                    side=order.side,
+                    quantity=order.quantity,
+                    fill_price=fill_price,
+                    commission=commission,
+                    slippage=slippage * stop_price * order.quantity,
+                    timestamp=bar.timestamp,
+                )
+
+        elif order.order_type == OrderType.TRAILING_STOP_LIMIT:
+            # Trailing stop limit: trailing stop that becomes a limit order
+            stop_price = self.trailing_stop_prices.get(order.order_id)
+            if stop_price is None or order.limit_price is None:
+                return None
+
+            triggered = False
+            if order.side == OrderSide.SELL and bar.low <= stop_price:
+                triggered = True
+            elif order.side == OrderSide.BUY and bar.high >= stop_price:
+                triggered = True
+
+            if triggered:
+                # Calculate limit price offset from trailing stop
+                limit_offset = abs(stop_price - order.limit_price) if order.limit_price else 0
+
+                if order.side == OrderSide.SELL:
+                    actual_limit = stop_price - limit_offset
+                    if bar.high >= actual_limit:
+                        fill_price = max(actual_limit, min(bar.open, stop_price))
+                        commission = self._compute_commission(order, fill_price)
+                        del self.trailing_stop_prices[order.order_id]
+                        return Fill(
+                            order_id=order.order_id,
+                            symbol=order.symbol,
+                            side=order.side,
+                            quantity=order.quantity,
+                            fill_price=fill_price,
+                            commission=commission,
+                            slippage=0,
+                            timestamp=bar.timestamp,
+                        )
+                else:
+                    actual_limit = stop_price + limit_offset
+                    if bar.low <= actual_limit:
+                        fill_price = min(actual_limit, max(bar.open, stop_price))
+                        commission = self._compute_commission(order, fill_price)
+                        del self.trailing_stop_prices[order.order_id]
+                        return Fill(
+                            order_id=order.order_id,
+                            symbol=order.symbol,
+                            side=order.side,
+                            quantity=order.quantity,
+                            fill_price=fill_price,
+                            commission=commission,
+                            slippage=0,
+                            timestamp=bar.timestamp,
+                        )
 
         return None
 
