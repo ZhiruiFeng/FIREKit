@@ -6,7 +6,16 @@ This document outlines the implementation roadmap for VectorForge, the high-perf
 
 VectorForge is the foundational backtesting infrastructure that enables rapid strategy research through vectorized operations while maintaining production-ready simulation capabilities through event-driven execution.
 
-## Current Status: Phase 1 - Core Engine Refinement Complete
+## Current Status: Phase 2 - Multi-Asset Portfolio Support (v0.3.0)
+
+> **See [PROGRESS.md](./PROGRESS.md) for detailed task tracking and [CHANGELOG.md](./CHANGELOG.md) for version history.**
+
+### Active Development Focus
+The next major milestone focuses on enabling multi-asset portfolio backtesting. This unlocks diversified strategy research and cross-sectional signal generation.
+
+---
+
+## Completed Phases
 
 ### Phase 0 (v0.1.0) - Foundation Complete ✓
 - [x] Project structure and package configuration
@@ -106,27 +115,55 @@ VectorForge is the foundational backtesting infrastructure that enables rapid st
 
 ---
 
-## Phase 2: Advanced Features
+## Phase 2: Multi-Asset Portfolio Support (v0.3.0) - IN PROGRESS
 
 ### 2.1 Multi-Asset Portfolio Support
 
 **Objective**: Backtest strategies across multiple assets simultaneously
 
+**Target Files**:
+- `vectorforge/portfolio/` (new module)
+- `vectorforge/portfolio/data.py` - Multi-symbol data management
+- `vectorforge/portfolio/signals.py` - Cross-sectional signal generation
+- `vectorforge/portfolio/rebalance.py` - Rebalancing logic
+- `vectorforge/portfolio/metrics.py` - Portfolio-level analytics
+
 #### Tasks
-1. **Portfolio Data Management**
-   - Synchronized multi-symbol data
-   - Handle missing data / stale prices
-   - Corporate actions (splits, dividends)
 
-2. **Portfolio-Level Signals**
-   - Cross-sectional signals
-   - Relative strength calculations
-   - Sector/industry groupings
+1. **Portfolio Data Management** (Priority: P0)
+   - [ ] `PortfolioData` class for multi-symbol OHLCV storage
+   - [ ] `align_data()` - Synchronize different trading calendars
+   - [ ] `handle_missing()` - Forward-fill, interpolation options
+   - [ ] `apply_split()` - Stock split adjustment factors
+   - [ ] `apply_dividend()` - Cash dividend handling
+   - [ ] `validate_consistency()` - Cross-symbol data validation
 
-3. **Rebalancing Logic**
-   - Calendar-based rebalancing
-   - Threshold-based triggers
-   - Transaction cost optimization
+2. **Portfolio-Level Signals** (Priority: P0)
+   - [ ] `CrossSectionalSignal` base class
+   - [ ] `rank_signals()` - Rank-based signal generation
+   - [ ] `relative_strength()` - Momentum across universe
+   - [ ] `SectorGrouping` - Industry classification support
+   - [ ] `market_cap_weight()` - Size-based allocation
+
+3. **Rebalancing Logic** (Priority: P0)
+   - [ ] `CalendarRebalancer` - Daily/weekly/monthly triggers
+   - [ ] `ThresholdRebalancer` - Drift-based triggers
+   - [ ] `optimize_turnover()` - Transaction cost minimization
+   - [ ] `TurnoverConstraint` - Max daily turnover limits
+
+4. **Portfolio Metrics** (Priority: P1)
+   - [ ] `portfolio_sharpe()` - Aggregate risk-adjusted returns
+   - [ ] `rolling_correlation()` - Correlation matrix tracking
+   - [ ] `sector_exposure()` - Allocation breakdown by sector
+   - [ ] `diversification_ratio()` - Portfolio diversification measure
+   - [ ] `concentration_metrics()` - HHI, top-N holdings weight
+
+#### Success Criteria
+- Support 100+ symbols in single backtest
+- Rebalancing options: daily, weekly, monthly, threshold-based
+- Corporate actions: splits and dividends handled correctly
+- Portfolio metrics: Sharpe, correlation, sector exposure
+- Performance: <1s for 10-year 50-stock portfolio backtest
 
 ### 2.2 Intraday & High-Frequency
 
@@ -422,11 +459,12 @@ VectorForge is the foundational backtesting infrastructure that enables rapid st
 - Exchange calendar integration
 - Hybrid Runner strategy analysis
 
-### v0.3.0 - Multi-Asset (NEXT)
-- Portfolio backtesting
-- Cross-sectional signals
-- Rebalancing
-- Corporate actions handling
+### v0.3.0 - Multi-Asset (IN PROGRESS)
+- [ ] Portfolio data management (multi-symbol OHLCV)
+- [ ] Cross-sectional signal generation
+- [ ] Calendar and threshold-based rebalancing
+- [ ] Corporate actions handling (splits, dividends)
+- [ ] Portfolio-level metrics (Sharpe, correlation, exposure)
 
 ### v0.4.0 - Validation
 - Monte Carlo simulation
