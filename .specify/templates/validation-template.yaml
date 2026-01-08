@@ -1,0 +1,281 @@
+# VALIDATION.yaml - Project Validation Contract Template
+# Schema Version: 1.0.0
+#
+# This template defines the validation pipeline for your project.
+# Copy to your repo root and customize for your specific needs.
+#
+# Usage:
+#   1. Copy this file to your repo root as VALIDATION.yaml
+#   2. Update project settings for your codebase
+#   3. Configure test commands and coverage thresholds
+#   4. Define change detection scope rules
+#   5. Run: /speckit.validate
+
+version: "1.0.0"
+
+# =============================================================================
+# PROJECT IDENTIFICATION
+# =============================================================================
+project:
+  name: "[PROJECT_NAME]"
+  primary_module: "[MODULE_NAME]"
+  python_version: ">=3.11"
+  description: "[PROJECT_DESCRIPTION]"
+
+# =============================================================================
+# ENVIRONMENT VALIDATION
+# =============================================================================
+# Defines what tools and versions must be available
+environment:
+  required_tools:
+    - name: python
+      version: ">=3.11"
+      command: "python3 --version"
+      required: true
+    - name: ruff
+      version: ">=0.1.0"
+      command: "ruff --version"
+      required: true
+    - name: mypy
+      version: ">=1.7.0"
+      command: "mypy --version"
+      required: true
+    - name: pytest
+      version: ">=7.4.0"
+      command: "pytest --version"
+      required: true
+
+  virtual_env:
+    required: false
+    paths:
+      - ".venv"
+      - "venv"
+      - "[MODULE_NAME]-env"
+
+# =============================================================================
+# BUILD VALIDATION
+# =============================================================================
+# Defines lint, type check, and format commands
+build:
+  lint:
+    tool: ruff
+    command: "ruff check [MODULE_NAME]/"
+    fix_command: "ruff check [MODULE_NAME]/ --fix"
+    auto_fix: true
+    fail_on_error: true
+
+  type_check:
+    tool: mypy
+    command: "mypy [MODULE_NAME]/"
+    strict: false
+    auto_fix: false
+    fail_on_error: true
+
+  format:
+    tool: ruff
+    command: "ruff format --check [MODULE_NAME]/"
+    fix_command: "ruff format [MODULE_NAME]/"
+    auto_fix: true
+    fail_on_error: false
+
+# =============================================================================
+# TEST VALIDATION
+# =============================================================================
+# Defines test commands and coverage requirements
+test:
+  unit:
+    command: "pytest [MODULE_NAME]/tests/ -v --tb=short"
+    timeout_seconds: 300
+    required: true
+
+  coverage:
+    enabled: true
+    min_threshold: 70
+    command: "pytest [MODULE_NAME]/tests/ --cov=[MODULE_NAME] --cov-report=term-missing"
+    fail_under: true
+
+  integration:
+    command: "pytest [MODULE_NAME]/tests/ -m integration -v"
+    timeout_seconds: 600
+    required: false
+
+  benchmark:
+    command: "pytest [MODULE_NAME]/tests/ --benchmark-only"
+    required: false
+    trigger_on: []
+
+  flaky_detection:
+    enabled: true
+    reruns: 3
+    threshold: 2
+
+# =============================================================================
+# RUNTIME VALIDATION
+# =============================================================================
+# Smoke tests to verify the module works
+runtime:
+  smoke_tests:
+    - name: "Module import"
+      command: "python3 -c 'import [MODULE_NAME]'"
+      required: true
+    # Add more smoke tests as needed:
+    # - name: "Core classes"
+    #   command: "python3 -c 'from [MODULE_NAME] import SomeClass'"
+    #   required: true
+
+# =============================================================================
+# CHANGE DETECTION
+# =============================================================================
+# Maps file changes to test scopes for smart validation
+change_detection:
+  enabled: true
+  base_ref: "HEAD~1"
+
+  scope_rules:
+    # Example: Map module directories to their test files
+    # - pattern: "[MODULE_NAME]/[MODULE_NAME]/engine/*.py"
+    #   test_scope:
+    #     - "test_engine.py"
+    #   full_suite: false
+
+    # Config changes trigger full suite
+    - pattern: "[MODULE_NAME]/pyproject.toml"
+      full_suite: true
+
+    # Test fixtures trigger full suite
+    - pattern: "[MODULE_NAME]/tests/conftest.py"
+      full_suite: true
+
+    # Documentation only - skip tests
+    - pattern: "*.md"
+      skip_tests: true
+
+    - pattern: "docs/**"
+      skip_tests: true
+
+# =============================================================================
+# DEBUG LOGGING
+# =============================================================================
+# Configuration for debug log injection during validation
+debug_logging:
+  enabled: true
+  injection_markers:
+    start: "# [VALIDATION_DEBUG_START]"
+    end: "# [VALIDATION_DEBUG_END]"
+  auto_cleanup: true
+  preserve_on_failure: false
+  backup_dir: ".validation/debug_logs"
+
+# =============================================================================
+# DOCUMENTATION SYNC
+# =============================================================================
+# Check that documentation is in sync with code
+documentation:
+  check_enabled: true
+
+  tracked_docs:
+    - path: "README.md"
+      check_examples: true
+    - path: "[MODULE_NAME]/README.md"
+      check_examples: true
+      check_exports: true
+
+  exports_check:
+    module: "[MODULE_NAME]/[MODULE_NAME]/__init__.py"
+    docs:
+      - "[MODULE_NAME]/README.md"
+
+# =============================================================================
+# SIGNAL CONFIGURATION
+# =============================================================================
+# Defines when each signal is triggered
+signals:
+  promote:
+    exit_code: 0
+    requirements:
+      - environment_pass
+      - lint_pass
+      - type_check_pass
+      - tests_pass
+      - smoke_tests_pass
+
+  auto_fix:
+    exit_code: 2
+    max_attempts: 2
+    triggers:
+      - lint_errors
+      - format_errors
+
+  human_needed:
+    exit_code: 2
+    triggers:
+      - type_errors
+      - test_failures
+      - coverage_gap
+      - flaky_tests
+      - smoke_test_failures
+
+  error:
+    exit_code: 3
+    triggers:
+      - environment_failure
+      - tool_missing
+      - command_not_found
+
+  flaky:
+    exit_code: 4
+    triggers:
+      - flaky_test_detected
+
+  kill:
+    exit_code: 2
+    triggers:
+      - repeated_failures: 3
+
+# =============================================================================
+# QUALITY GATES
+# =============================================================================
+# Minimum quality requirements
+quality_gates:
+  test_first:
+    coverage_minimum: 70
+    require_tests_pass: true
+
+  performance:
+    benchmark_regression_threshold: 10
+
+  production_parity:
+    deterministic_tests: true
+
+# =============================================================================
+# HUMAN HANDOFF
+# =============================================================================
+# Configuration for human handoff reports
+handoff:
+  report_format: "markdown"
+  output_dir: ".validation"
+
+  include_sections:
+    - summary
+    - layer_results
+    - failed_checks
+    - decisions_made
+    - human_actions
+    - first_principle_training
+    - reproduction_steps
+    - context_files
+
+  first_principle_training:
+    enabled: true
+    explain_decisions: true
+    provide_alternatives: true
+    include_resources: true
+
+# =============================================================================
+# EXIT CODES REFERENCE
+# =============================================================================
+exit_codes:
+  PASS: 0
+  FAIL: 2
+  ERROR: 3
+  FLAKY: 4

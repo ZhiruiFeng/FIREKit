@@ -23,12 +23,12 @@ import numpy as np
 import pandas as pd
 
 from vectorforge.engine.base import BacktestEngine, BacktestResult
-from vectorforge.engine.vectorized import VectorizedBacktester
 from vectorforge.engine.event_driven import EventDrivenBacktester
+from vectorforge.engine.vectorized import VectorizedBacktester
 
 if TYPE_CHECKING:
-    from vectorforge.strategy.base import BaseStrategy
     from vectorforge.config import VectorForgeConfig
+    from vectorforge.strategy.base import BaseStrategy
 
 
 class StrategyComplexity(Enum):
@@ -144,9 +144,7 @@ class HybridRunner(BacktestEngine):
             List of BacktestResult
         """
         # Use vectorized for batch operations
-        return self.vectorized.run_batch(
-            strategy_class, param_grid, data, initial_capital
-        )
+        return self.vectorized.run_batch(strategy_class, param_grid, data, initial_capital)
 
     def validate(
         self,

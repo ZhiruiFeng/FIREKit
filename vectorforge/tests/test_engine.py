@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vectorforge import VectorizedBacktester, EventDrivenBacktester, HybridRunner
+from vectorforge import HybridRunner
 from vectorforge.engine.base import BacktestResult
 from vectorforge.strategy.base import MomentumStrategy, MovingAverageCrossover
 

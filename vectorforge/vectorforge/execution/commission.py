@@ -13,6 +13,7 @@ from dataclasses import dataclass
 @dataclass
 class TradeInfo:
     """Information needed for commission calculation."""
+
     shares: int
     price: float
     value: float = 0.0  # Trade value (shares * price)
@@ -164,9 +165,7 @@ class CryptoCommission(CommissionModel):
         return trade.value * fee_rate
 
 
-def create_commission_model(
-    model_type: str, **kwargs
-) -> CommissionModel:
+def create_commission_model(model_type: str, **kwargs) -> CommissionModel:
     """
     Factory function to create commission models.
 

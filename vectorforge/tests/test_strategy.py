@@ -71,10 +71,12 @@ class TestMovingAverageCrossover:
     def test_crossover_detection(self):
         """Test that crossovers are detected."""
         # Create data where fast MA crosses slow MA
-        close = np.concatenate([
-            np.linspace(100, 90, 50),   # Downtrend
-            np.linspace(90, 110, 50),   # Uptrend
-        ])
+        close = np.concatenate(
+            [
+                np.linspace(100, 90, 50),  # Downtrend
+                np.linspace(90, 110, 50),  # Uptrend
+            ]
+        )
 
         strategy = MovingAverageCrossover(fast_period=5, slow_period=20)
         signals = strategy.generate_signals(close=close)

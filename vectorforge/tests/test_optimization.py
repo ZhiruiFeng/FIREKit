@@ -2,15 +2,13 @@
 Tests for VectorForge optimization tools.
 """
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from vectorforge import VectorizedBacktester
-from vectorforge.strategy.base import MomentumStrategy
+from vectorforge.optimization.cross_validation import CombinatorialPurgedKFold, PurgedKFold
 from vectorforge.optimization.grid_search import GridSearch
 from vectorforge.optimization.walk_forward import WalkForwardOptimizer
-from vectorforge.optimization.cross_validation import PurgedKFold, CombinatorialPurgedKFold
+from vectorforge.strategy.base import MomentumStrategy
 
 
 class TestGridSearch:

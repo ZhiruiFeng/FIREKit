@@ -6,20 +6,21 @@ Purged K-Fold and combinatorial cross-validation for time series.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from vectorforge.engine.base import BacktestEngine
-    from vectorforge.strategy.base import BaseStrategy
+    pass
 
 
 @dataclass
 class CVFold:
     """A single cross-validation fold."""
+
     fold_idx: int
     train_indices: np.ndarray
     test_indices: np.ndarray
@@ -67,9 +68,7 @@ class PurgedKFold:
         self.embargo_period = embargo_period
         self.purge_period = purge_period
 
-    def split(
-        self, data: pd.DataFrame | np.ndarray
-    ) -> Iterator[tuple[np.ndarray, np.ndarray]]:
+    def split(self, data: pd.DataFrame | np.ndarray) -> Iterator[tuple[np.ndarray, np.ndarray]]:
         """
         Generate train/test indices for each fold.
 
@@ -130,9 +129,7 @@ class CombinatorialPurgedKFold:
         self.n_test_splits = n_test_splits
         self.embargo_period = embargo_period
 
-    def split(
-        self, data: pd.DataFrame | np.ndarray
-    ) -> Iterator[tuple[np.ndarray, np.ndarray]]:
+    def split(self, data: pd.DataFrame | np.ndarray) -> Iterator[tuple[np.ndarray, np.ndarray]]:
         """
         Generate train/test indices for each combination.
 
@@ -183,4 +180,5 @@ class CombinatorialPurgedKFold:
     def get_n_splits(self) -> int:
         """Return number of combinations."""
         from math import comb
+
         return comb(self.n_splits, self.n_test_splits)

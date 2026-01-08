@@ -16,6 +16,7 @@ import pandas as pd
 @dataclass
 class RiskMetrics:
     """Risk-related metrics."""
+
     volatility: float  # Annualized volatility
     downside_volatility: float  # Downside deviation
     var_95: float  # Value at Risk (95%)
@@ -27,6 +28,7 @@ class RiskMetrics:
 @dataclass
 class ReturnMetrics:
     """Return-related metrics."""
+
     total_return: float
     annual_return: float
     monthly_return: float

@@ -2,10 +2,10 @@
 Pytest configuration and fixtures for VectorForge tests.
 """
 
+
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import datetime, timedelta
 
 
 @pytest.fixture
@@ -25,7 +25,9 @@ def sample_ohlcv_data():
     data = pd.DataFrame(index=dates)
     data["close"] = prices
     data["open"] = data["close"].shift(1).fillna(100)
-    data["high"] = np.maximum(data["open"], data["close"]) * (1 + np.random.uniform(0, 0.02, n_days))
+    data["high"] = np.maximum(data["open"], data["close"]) * (
+        1 + np.random.uniform(0, 0.02, n_days)
+    )
     data["low"] = np.minimum(data["open"], data["close"]) * (1 - np.random.uniform(0, 0.02, n_days))
     data["volume"] = np.random.uniform(1e6, 5e6, n_days).astype(int)
 
@@ -73,6 +75,7 @@ def trending_data():
 def config():
     """Create default VectorForge configuration."""
     from vectorforge.config import VectorForgeConfig
+
     return VectorForgeConfig.default()
 
 
@@ -80,6 +83,7 @@ def config():
 def vectorized_backtester(config):
     """Create VectorizedBacktester instance."""
     from vectorforge import VectorizedBacktester
+
     return VectorizedBacktester(config)
 
 
@@ -87,6 +91,7 @@ def vectorized_backtester(config):
 def event_driven_backtester(config):
     """Create EventDrivenBacktester instance."""
     from vectorforge import EventDrivenBacktester
+
     return EventDrivenBacktester(config)
 
 
@@ -94,6 +99,7 @@ def event_driven_backtester(config):
 def momentum_strategy():
     """Create MomentumStrategy instance."""
     from vectorforge.strategy.base import MomentumStrategy
+
     return MomentumStrategy(lookback=20)
 
 
@@ -101,4 +107,5 @@ def momentum_strategy():
 def ma_crossover_strategy():
     """Create MovingAverageCrossover instance."""
     from vectorforge.strategy.base import MovingAverageCrossover
+
     return MovingAverageCrossover(fast_period=10, slow_period=30)

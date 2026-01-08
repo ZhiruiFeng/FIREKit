@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
 import pandas as pd
 
@@ -16,6 +15,7 @@ import pandas as pd
 @dataclass
 class UniverseMember:
     """Represents a symbol's membership in a universe."""
+
     symbol: str
     start_date: datetime
     end_date: datetime | None
@@ -63,12 +63,14 @@ class PointInTimeUniverse:
             end_date: Date symbol left universe (None if still active)
             reason: Reason for entry/exit
         """
-        self._members.append(UniverseMember(
-            symbol=symbol,
-            start_date=start_date,
-            end_date=end_date,
-            reason=reason,
-        ))
+        self._members.append(
+            UniverseMember(
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                reason=reason,
+            )
+        )
         self._composition = None  # Invalidate cache
 
     def load(self, path: str) -> None:
@@ -146,15 +148,17 @@ class PointInTimeUniverse:
     def to_dataframe(self) -> pd.DataFrame:
         """Convert universe to DataFrame."""
         if self._composition is None:
-            self._composition = pd.DataFrame([
-                {
-                    "symbol": m.symbol,
-                    "start_date": m.start_date,
-                    "end_date": m.end_date,
-                    "reason": m.reason,
-                }
-                for m in self._members
-            ])
+            self._composition = pd.DataFrame(
+                [
+                    {
+                        "symbol": m.symbol,
+                        "start_date": m.start_date,
+                        "end_date": m.end_date,
+                        "reason": m.reason,
+                    }
+                    for m in self._members
+                ]
+            )
         return self._composition
 
     def __len__(self) -> int:

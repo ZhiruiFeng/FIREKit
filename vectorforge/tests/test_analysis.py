@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vectorforge.analysis.metrics import PerformanceMetrics
 from vectorforge.analysis.drawdown import DrawdownAnalyzer
+from vectorforge.analysis.metrics import PerformanceMetrics
 from vectorforge.analysis.trades import TradeAnalyzer
 
 
@@ -159,15 +159,17 @@ class TestTradeAnalyzer:
         np.random.seed(42)
         n_trades = 50
 
-        trades = pd.DataFrame({
-            "timestamp": pd.date_range("2023-01-01", periods=n_trades, freq="W"),
-            "symbol": ["AAPL"] * n_trades,
-            "side": np.random.choice(["buy", "sell"], n_trades),
-            "quantity": np.random.randint(10, 100, n_trades),
-            "price": np.random.uniform(150, 200, n_trades),
-            "pnl": np.random.normal(100, 500, n_trades),
-            "commission": np.random.uniform(1, 10, n_trades),
-        })
+        trades = pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2023-01-01", periods=n_trades, freq="W"),
+                "symbol": ["AAPL"] * n_trades,
+                "side": np.random.choice(["buy", "sell"], n_trades),
+                "quantity": np.random.randint(10, 100, n_trades),
+                "price": np.random.uniform(150, 200, n_trades),
+                "pnl": np.random.normal(100, 500, n_trades),
+                "commission": np.random.uniform(1, 10, n_trades),
+            }
+        )
 
         return trades
 

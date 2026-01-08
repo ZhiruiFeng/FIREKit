@@ -6,8 +6,9 @@ Exhaustive parameter search for strategy optimization.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from itertools import product
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -84,11 +85,13 @@ class GridSearch:
             # Extract metric value
             metric_value = getattr(result, metric, 0.0)
 
-            results.append({
-                "params": params,
-                "result": result,
-                metric: metric_value,
-            })
+            results.append(
+                {
+                    "params": params,
+                    "result": result,
+                    metric: metric_value,
+                }
+            )
 
         # Sort by metric
         results.sort(key=lambda x: x[metric], reverse=not ascending)
@@ -118,8 +121,6 @@ class GridSearch:
         Returns:
             Filtered and sorted results
         """
-        all_results = self.search(
-            strategy_class, param_grid, data, initial_capital, metric
-        )
+        all_results = self.search(strategy_class, param_grid, data, initial_capital, metric)
 
         return [r for r in all_results if filter_func(r["result"])]

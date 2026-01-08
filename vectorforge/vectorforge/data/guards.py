@@ -14,6 +14,7 @@ import pandas as pd
 
 class LookaheadError(Exception):
     """Raised when future data access is attempted."""
+
     pass
 
 
@@ -66,7 +67,7 @@ class DataGuard:
                     f"current index is {self._current_idx}"
                 )
 
-            return self._data.iloc[:self._current_idx + 1][key]
+            return self._data.iloc[: self._current_idx + 1][key]
 
         elif isinstance(key, int):
             if key > self._current_idx:
@@ -83,7 +84,7 @@ class DataGuard:
         else:
             raise TypeError(f"Invalid key type: {type(key)}")
 
-    def __getattr__(self, name: str) -> "GuardedSeries":
+    def __getattr__(self, name: str) -> GuardedSeries:
         """Attribute access for columns."""
         if name.startswith("_"):
             raise AttributeError(name)
@@ -94,27 +95,27 @@ class DataGuard:
         raise AttributeError(f"Column '{name}' not found")
 
     @property
-    def close(self) -> "GuardedSeries":
+    def close(self) -> GuardedSeries:
         """Get guarded close prices."""
         return GuardedSeries(self._data["close"], self._current_idx)
 
     @property
-    def open(self) -> "GuardedSeries":
+    def open(self) -> GuardedSeries:
         """Get guarded open prices."""
         return GuardedSeries(self._data["open"], self._current_idx)
 
     @property
-    def high(self) -> "GuardedSeries":
+    def high(self) -> GuardedSeries:
         """Get guarded high prices."""
         return GuardedSeries(self._data["high"], self._current_idx)
 
     @property
-    def low(self) -> "GuardedSeries":
+    def low(self) -> GuardedSeries:
         """Get guarded low prices."""
         return GuardedSeries(self._data["low"], self._current_idx)
 
     @property
-    def volume(self) -> "GuardedSeries":
+    def volume(self) -> GuardedSeries:
         """Get guarded volume."""
         return GuardedSeries(self._data["volume"], self._current_idx)
 
@@ -135,40 +136,36 @@ class GuardedSeries:
         if isinstance(key, slice):
             stop = key.stop
             if stop is not None and stop > 0:
-                raise LookaheadError(
-                    f"Slice stop must be <= 0 for safe access, got {stop}"
-                )
+                raise LookaheadError(f"Slice stop must be <= 0 for safe access, got {stop}")
             # Negative indexing is safe
-            return self._series.iloc[:self._current_idx + 1][key]
+            return self._series.iloc[: self._current_idx + 1][key]
 
         elif isinstance(key, int):
             if key >= 0 and key > self._current_idx:
-                raise LookaheadError(
-                    f"Attempted to access future data at index {key}"
-                )
-            return self._series.iloc[:self._current_idx + 1].iloc[key]
+                raise LookaheadError(f"Attempted to access future data at index {key}")
+            return self._series.iloc[: self._current_idx + 1].iloc[key]
 
         raise TypeError(f"Invalid key type: {type(key)}")
 
     def to_array(self) -> np.ndarray:
         """Get available data as array."""
-        return self._series.iloc[:self._current_idx + 1].values
+        return self._series.iloc[: self._current_idx + 1].values
 
     def mean(self) -> float:
         """Calculate mean of available data."""
-        return float(self._series.iloc[:self._current_idx + 1].mean())
+        return float(self._series.iloc[: self._current_idx + 1].mean())
 
     def std(self) -> float:
         """Calculate std of available data."""
-        return float(self._series.iloc[:self._current_idx + 1].std())
+        return float(self._series.iloc[: self._current_idx + 1].std())
 
     def min(self) -> float:
         """Get minimum of available data."""
-        return float(self._series.iloc[:self._current_idx + 1].min())
+        return float(self._series.iloc[: self._current_idx + 1].min())
 
     def max(self) -> float:
         """Get maximum of available data."""
-        return float(self._series.iloc[:self._current_idx + 1].max())
+        return float(self._series.iloc[: self._current_idx + 1].max())
 
     def __len__(self) -> int:
         """Return length of available data."""

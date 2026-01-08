@@ -16,6 +16,7 @@ import pandas as pd
 @dataclass
 class TradeStats:
     """Summary statistics for trades."""
+
     total_trades: int
     winning_trades: int
     losing_trades: int

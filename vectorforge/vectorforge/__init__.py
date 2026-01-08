@@ -20,13 +20,13 @@ Example:
     >>> print(results.sharpe_ratio)
 """
 
-from vectorforge.engine.base import BacktestEngine
-from vectorforge.engine.vectorized import VectorizedBacktester
-from vectorforge.engine.event_driven import EventDrivenBacktester
-from vectorforge.engine.hybrid import HybridRunner
-from vectorforge.strategy.base import BaseStrategy
 from vectorforge.analysis.metrics import PerformanceMetrics
 from vectorforge.config import VectorForgeConfig
+from vectorforge.engine.base import BacktestEngine
+from vectorforge.engine.event_driven import EventDrivenBacktester
+from vectorforge.engine.hybrid import HybridRunner
+from vectorforge.engine.vectorized import VectorizedBacktester
+from vectorforge.strategy.base import BaseStrategy
 
 __version__ = "0.1.0"
 __author__ = "FIREKit Team"

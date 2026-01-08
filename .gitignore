@@ -1,0 +1,12 @@
+# Jupyter Notebook
+.ipynb_checkpoints/
+*-test.ipynb
+*-Test.ipynb
+
+# Python virtual environments
+*-env/
+venv/
+.venv/
+
+# Validation outputs
+.validation/

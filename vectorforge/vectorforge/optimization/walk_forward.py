@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from vectorforge.engine.base import BacktestResult
 from vectorforge.optimization.grid_search import GridSearch
 
 if TYPE_CHECKING:
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
 @dataclass
 class WalkForwardResult:
     """Results from a single walk-forward period."""
+
     train_start: datetime
     train_end: datetime
     test_start: datetime
@@ -172,12 +172,14 @@ class WalkForwardOptimizer:
                 train_end = test_start - 1
                 test_end = test_start + self.test_period - 1
 
-                windows.append((
-                    idx[train_start],
-                    idx[train_end],
-                    idx[test_start],
-                    idx[test_end],
-                ))
+                windows.append(
+                    (
+                        idx[train_start],
+                        idx[train_end],
+                        idx[test_start],
+                        idx[test_end],
+                    )
+                )
 
                 test_start += self.step_period
         else:
@@ -189,12 +191,14 @@ class WalkForwardOptimizer:
                 test_start = start + self.train_period
                 test_end = test_start + self.test_period - 1
 
-                windows.append((
-                    idx[train_start],
-                    idx[train_end],
-                    idx[test_start],
-                    idx[test_end],
-                ))
+                windows.append(
+                    (
+                        idx[train_start],
+                        idx[train_end],
+                        idx[test_start],
+                        idx[test_end],
+                    )
+                )
 
                 start += self.step_period
 

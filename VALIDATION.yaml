@@ -1,0 +1,275 @@
+# VALIDATION.yaml - FIREKit Validation Contract
+# Schema Version: 1.0.0
+# This file defines the validation pipeline for the FIREKit project.
+
+version: "1.0.0"
+
+# Project identification
+project:
+  name: "FIREKit"
+  primary_module: "vectorforge"
+  python_version: ">=3.11"
+  description: "AI-powered quantitative trading ecosystem"
+
+# Environment validation configuration
+environment:
+  required_tools:
+    - name: python
+      version: ">=3.11"
+      command: "python3 --version"
+      required: true
+    - name: ruff
+      version: ">=0.1.0"
+      command: "ruff --version"
+      required: true
+    - name: mypy
+      version: ">=1.7.0"
+      command: "mypy --version"
+      required: true
+    - name: pytest
+      version: ">=7.4.0"
+      command: "pytest --version"
+      required: true
+
+  virtual_env:
+    required: false
+    paths:
+      - "vectorforge/jax-env"
+      - ".venv"
+      - "venv"
+
+# Build agent configuration
+build:
+  lint:
+    tool: ruff
+    command: "ruff check vectorforge/"
+    fix_command: "ruff check vectorforge/ --fix"
+    auto_fix: true
+    fail_on_error: true
+
+  type_check:
+    tool: mypy
+    command: "mypy vectorforge/vectorforge/"
+    strict: false
+    auto_fix: false
+    fail_on_error: true
+
+  format:
+    tool: ruff
+    command: "ruff format --check vectorforge/"
+    fix_command: "ruff format vectorforge/"
+    auto_fix: true
+    fail_on_error: false
+
+# Test agent configuration
+test:
+  unit:
+    command: "pytest vectorforge/tests/ -v --tb=short"
+    timeout_seconds: 300
+    required: true
+
+  coverage:
+    enabled: true
+    min_threshold: 70
+    command: "pytest vectorforge/tests/ --cov=vectorforge --cov-report=term-missing"
+    fail_under: true
+
+  integration:
+    command: "pytest vectorforge/tests/ -m integration -v"
+    timeout_seconds: 600
+    required: false
+
+  benchmark:
+    command: "pytest vectorforge/tests/ --benchmark-only"
+    required: false
+    trigger_on:
+      - "vectorforge/engine/*.py"
+      - "vectorforge/optimization/*.py"
+
+  flaky_detection:
+    enabled: true
+    reruns: 3
+    threshold: 2
+
+# Runtime validation configuration
+runtime:
+  smoke_tests:
+    - name: "Module import"
+      command: "python3 -c 'import vectorforge'"
+      required: true
+    - name: "Core classes available"
+      command: "python3 -c 'from vectorforge import VectorizedBacktester, EventDrivenBacktester, HybridRunner'"
+      required: true
+    - name: "Strategy import"
+      command: "python3 -c 'from vectorforge.strategy import MomentumStrategy, MovingAverageCrossover'"
+      required: true
+
+# Change detection configuration
+change_detection:
+  enabled: true
+  base_ref: "HEAD~1"
+
+  scope_rules:
+    # Engine changes -> engine tests
+    - pattern: "vectorforge/vectorforge/engine/*.py"
+      test_scope:
+        - "test_engine.py"
+      full_suite: false
+
+    # Strategy changes -> strategy tests
+    - pattern: "vectorforge/vectorforge/strategy/*.py"
+      test_scope:
+        - "test_strategy.py"
+      full_suite: false
+
+    # Analysis changes -> analysis tests
+    - pattern: "vectorforge/vectorforge/analysis/*.py"
+      test_scope:
+        - "test_analysis.py"
+      full_suite: false
+
+    # Optimization changes -> optimization tests
+    - pattern: "vectorforge/vectorforge/optimization/*.py"
+      test_scope:
+        - "test_optimization.py"
+      full_suite: false
+
+    # Config changes -> full suite
+    - pattern: "vectorforge/vectorforge/config.py"
+      full_suite: true
+
+    # Test fixtures -> full suite
+    - pattern: "vectorforge/tests/conftest.py"
+      full_suite: true
+
+    # Project config -> full suite
+    - pattern: "vectorforge/pyproject.toml"
+      full_suite: true
+
+    # Documentation only -> skip tests
+    - pattern: "*.md"
+      skip_tests: true
+
+    - pattern: "docs/**"
+      skip_tests: true
+
+# Debug logging configuration
+debug_logging:
+  enabled: true
+  injection_markers:
+    start: "# [VALIDATION_DEBUG_START]"
+    end: "# [VALIDATION_DEBUG_END]"
+  auto_cleanup: true
+  preserve_on_failure: false
+  backup_dir: ".validation/debug_logs"
+
+# Documentation sync configuration
+documentation:
+  check_enabled: true
+
+  tracked_docs:
+    - path: "README.md"
+      check_examples: true
+    - path: "vectorforge/README.md"
+      check_examples: true
+      check_exports: true
+    - path: "docs/ECOSYSTEM_OVERVIEW.md"
+      optional: true
+
+  exports_check:
+    module: "vectorforge/vectorforge/__init__.py"
+    docs:
+      - "vectorforge/README.md"
+
+# Signal configuration
+signals:
+  # PROMOTE: All gates pass, ready for human review
+  promote:
+    exit_code: 0
+    requirements:
+      - environment_pass
+      - lint_pass
+      - type_check_pass
+      - tests_pass
+      - smoke_tests_pass
+
+  # AUTO-FIX: Fixable issues, agent attempts repair
+  auto_fix:
+    exit_code: 2
+    max_attempts: 2
+    triggers:
+      - lint_errors
+      - format_errors
+
+  # HUMAN NEEDED: Requires architectural/logic decisions
+  human_needed:
+    exit_code: 2
+    triggers:
+      - type_errors
+      - test_failures
+      - coverage_gap
+      - flaky_tests
+      - smoke_test_failures
+
+  # ERROR: Infrastructure/environment issues
+  error:
+    exit_code: 3
+    triggers:
+      - environment_failure
+      - tool_missing
+      - command_not_found
+
+  # FLAKY: Flaky tests detected
+  flaky:
+    exit_code: 4
+    triggers:
+      - flaky_test_detected
+
+  # KILL: Repeated failures, should abandon
+  kill:
+    exit_code: 2
+    triggers:
+      - repeated_failures: 3
+
+# Quality gates (aligned with constitution)
+quality_gates:
+  # From Constitution III: Test-First Development
+  test_first:
+    coverage_minimum: 70
+    require_tests_pass: true
+
+  # From Constitution II: Performance-First Design
+  performance:
+    benchmark_regression_threshold: 10  # percent
+
+  # From Constitution IV: Production-Parity
+  production_parity:
+    deterministic_tests: true
+
+# Human handoff report configuration
+handoff:
+  report_format: "markdown"
+  output_dir: ".validation"
+
+  include_sections:
+    - summary
+    - layer_results
+    - failed_checks
+    - decisions_made
+    - human_actions
+    - first_principle_training
+    - reproduction_steps
+    - context_files
+
+  first_principle_training:
+    enabled: true
+    explain_decisions: true
+    provide_alternatives: true
+    include_resources: true
+
+# Exit codes reference
+exit_codes:
+  PASS: 0
+  FAIL: 2
+  ERROR: 3
+  FLAKY: 4

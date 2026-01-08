@@ -8,9 +8,9 @@ Contains the core backtesting engine implementations:
 """
 
 from vectorforge.engine.base import BacktestEngine
-from vectorforge.engine.vectorized import VectorizedBacktester
 from vectorforge.engine.event_driven import EventDrivenBacktester
 from vectorforge.engine.hybrid import HybridRunner
+from vectorforge.engine.vectorized import VectorizedBacktester
 
 __all__ = [
     "BacktestEngine",

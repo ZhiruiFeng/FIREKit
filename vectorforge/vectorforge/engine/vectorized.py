@@ -37,8 +37,8 @@ from vectorforge.engine.accelerated import (
 )
 
 if TYPE_CHECKING:
-    from vectorforge.strategy.base import BaseStrategy
     from vectorforge.config import VectorForgeConfig
+    from vectorforge.strategy.base import BaseStrategy
 
 
 class VectorizedBacktester(BacktestEngine):
@@ -103,9 +103,15 @@ class VectorizedBacktester(BacktestEngine):
             except ImportError:
                 self._fallback_to_numpy()
         elif self._actual_backend == "numba":
-            self._np = np
-            self._jit = lambda f: f
-            self._vmap = None
+            try:
+                import numba
+
+                self._np = np
+                self._numba = numba
+                self._jit = lambda f: f
+                self._vmap = None
+            except ImportError:
+                self._fallback_to_numpy()
         else:
             self._fallback_to_numpy()
 

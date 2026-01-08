@@ -6,7 +6,7 @@ Abstract base class for all trading strategies in VectorForge.
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class SignalType(Enum):
     """Trading signal types."""
+
     LONG = 1
     SHORT = -1
     FLAT = 0
@@ -27,6 +28,7 @@ class SignalType(Enum):
 @dataclass
 class Signal:
     """Trading signal with metadata."""
+
     type: SignalType
     strength: float = 1.0  # Signal strength/confidence [0, 1]
     target_weight: float = 0.0  # Target portfolio weight
@@ -119,10 +121,10 @@ class BaseStrategy(ABC):
 
     def on_bar(
         self,
-        bar: "Bar",
-        position: "Position | None",
+        bar: Bar,
+        position: Position | None,
         cash: float,
-    ) -> "Order | None":
+    ) -> Order | None:
         """
         Process a single bar and return order (event-driven mode).
 
@@ -241,10 +243,10 @@ class MovingAverageCrossover(BaseStrategy):
 
     def on_bar(
         self,
-        bar: "Bar",
-        position: "Position | None",
+        bar: Bar,
+        position: Position | None,
         cash: float,
-    ) -> "Order | None":
+    ) -> Order | None:
         """Event-driven MA crossover logic."""
         from vectorforge.engine.event_driven import Order, OrderSide, OrderType
 

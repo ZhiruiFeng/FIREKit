@@ -11,12 +11,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from vectorforge.strategy.base import BaseStrategy
     from vectorforge.config import VectorForgeConfig
+    from vectorforge.strategy.base import BaseStrategy
 
 
 @dataclass
@@ -94,6 +93,7 @@ class BacktestEngine(ABC, Generic[StrategyT]):
             config: VectorForge configuration. Uses defaults if not provided.
         """
         from vectorforge.config import VectorForgeConfig
+
         self.config = config or VectorForgeConfig.default()
         self._is_running = False
 

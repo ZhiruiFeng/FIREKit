@@ -6,11 +6,9 @@ Utilities for tracking and managing trading positions.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
-
-import numpy as np
 
 if TYPE_CHECKING:
     from vectorforge.engine.event_driven import Fill
@@ -19,6 +17,7 @@ if TYPE_CHECKING:
 @dataclass
 class Trade:
     """Represents a completed trade (entry + exit)."""
+
     symbol: str
     entry_time: datetime
     exit_time: datetime
@@ -35,6 +34,7 @@ class Trade:
 @dataclass
 class OpenPosition:
     """Represents an open position."""
+
     symbol: str
     quantity: float
     avg_entry_price: float
@@ -72,7 +72,7 @@ class PositionManager:
         self._realized_pnl: float = 0.0
         self._total_commission: float = 0.0
 
-    def update(self, fill: "Fill") -> Trade | None:
+    def update(self, fill: Fill) -> Trade | None:
         """
         Update positions based on a fill.
 

@@ -7,7 +7,7 @@ Detailed drawdown analysis for trading strategies.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ import pandas as pd
 @dataclass
 class DrawdownPeriod:
     """Represents a single drawdown period."""
+
     start_date: datetime
     end_date: datetime | None
     trough_date: datetime
@@ -108,7 +109,9 @@ class DrawdownAnalyzer:
                         trough_value=trough_value,
                         recovery_date=date,
                         drawdown=(trough_value / peak_value - 1),
-                        duration=(trough_date - start_date).days if hasattr(trough_date, "days") else 0,
+                        duration=(trough_date - start_date).days
+                        if hasattr(trough_date, "days")
+                        else 0,
                         recovery_duration=(date - trough_date).days if hasattr(date, "days") else 0,
                     )
                     periods.append(period)

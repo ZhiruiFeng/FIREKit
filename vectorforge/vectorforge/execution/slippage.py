@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
 
 import numpy as np
 
@@ -16,6 +15,7 @@ import numpy as np
 @dataclass
 class OrderInfo:
     """Information needed for slippage calculation."""
+
     price: float
     quantity: float
     side: str  # "buy" or "sell"
@@ -173,9 +173,7 @@ class SpreadSlippage(SlippageModel):
         return order.price * self.half_spread_bps / 10000
 
 
-def create_slippage_model(
-    model_type: str, **kwargs
-) -> SlippageModel:
+def create_slippage_model(model_type: str, **kwargs) -> SlippageModel:
     """
     Factory function to create slippage models.
 

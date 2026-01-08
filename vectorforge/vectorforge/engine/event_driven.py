@@ -8,11 +8,10 @@ Provides realistic execution modeling with slippage and commission.
 from __future__ import annotations
 
 import time
-from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -20,12 +19,13 @@ import pandas as pd
 from vectorforge.engine.base import BacktestEngine, BacktestResult
 
 if TYPE_CHECKING:
-    from vectorforge.strategy.base import BaseStrategy
     from vectorforge.config import VectorForgeConfig
+    from vectorforge.strategy.base import BaseStrategy
 
 
 class EventType(Enum):
     """Types of events in the simulation."""
+
     BAR = "bar"
     ORDER = "order"
     FILL = "fill"
@@ -34,12 +34,14 @@ class EventType(Enum):
 
 class OrderSide(Enum):
     """Order side."""
+
     BUY = "buy"
     SELL = "sell"
 
 
 class OrderType(Enum):
     """Order types."""
+
     MARKET = "market"
     LIMIT = "limit"
     STOP = "stop"
@@ -62,6 +64,7 @@ class TimeInForce(Enum):
 @dataclass
 class Event:
     """Base event in the simulation."""
+
     type: EventType
     timestamp: datetime
     data: dict = field(default_factory=dict)
@@ -70,6 +73,7 @@ class Event:
 @dataclass
 class Bar:
     """OHLCV bar data."""
+
     symbol: str
     timestamp: datetime
     open: float
@@ -82,6 +86,7 @@ class Bar:
 @dataclass
 class Order:
     """Trading order with advanced order type support."""
+
     symbol: str
     side: OrderSide
     quantity: float
@@ -127,6 +132,7 @@ class BracketOrder:
 @dataclass
 class Fill:
     """Order fill/execution."""
+
     order_id: str
     symbol: str
     side: OrderSide
@@ -140,6 +146,7 @@ class Fill:
 @dataclass
 class Position:
     """Current position in a symbol."""
+
     symbol: str
     quantity: float = 0.0
     avg_price: float = 0.0
@@ -322,7 +329,9 @@ class SimulatedBroker:
             # Market orders fill at open with slippage
             base_price = bar.open
             slippage = self._compute_slippage(order, bar)
-            fill_price = base_price * (1 + slippage if order.side == OrderSide.BUY else 1 - slippage)
+            fill_price = base_price * (
+                1 + slippage if order.side == OrderSide.BUY else 1 - slippage
+            )
             commission = self._compute_commission(order, fill_price)
 
             return Fill(
@@ -706,15 +715,17 @@ class EventDrivenBacktester(BacktestEngine):
             self.cash += fill.quantity * fill.fill_price - fill.commission
 
         # Record trade
-        self.trade_history.append({
-            "timestamp": fill.timestamp,
-            "symbol": symbol,
-            "side": fill.side.value,
-            "quantity": fill.quantity,
-            "price": fill.fill_price,
-            "commission": fill.commission,
-            "slippage": fill.slippage,
-        })
+        self.trade_history.append(
+            {
+                "timestamp": fill.timestamp,
+                "symbol": symbol,
+                "side": fill.side.value,
+                "quantity": fill.quantity,
+                "price": fill.fill_price,
+                "commission": fill.commission,
+                "slippage": fill.slippage,
+            }
+        )
 
     def _compute_equity(self, bar: Bar) -> float:
         """Compute current portfolio equity."""
