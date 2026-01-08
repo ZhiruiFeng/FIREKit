@@ -115,10 +115,10 @@ class TestHybridRunner:
         # Both modes should produce valid results
         assert isinstance(result1, BacktestResult)
 
-    def test_compare_modes(self, config, sample_ohlcv_data, momentum_strategy):
+    def test_compare_modes(self, config, sample_ohlcv_data, ma_crossover_strategy):
         """Test mode comparison."""
         runner = HybridRunner(config)
-        comparison = runner.compare_modes(momentum_strategy, sample_ohlcv_data)
+        comparison = runner.compare_modes(ma_crossover_strategy, sample_ohlcv_data)
 
         assert "vectorized" in comparison
         assert "event_driven" in comparison

@@ -52,13 +52,14 @@ class OrderType(Enum):
 
 class TimeInForce(Enum):
     """Time-in-force options for orders."""
-    DAY = "day"           # Valid for the current trading day only
-    GTC = "gtc"           # Good 'til canceled
-    GTD = "gtd"           # Good 'til date
-    IOC = "ioc"           # Immediate or cancel
-    FOK = "fok"           # Fill or kill (all or nothing)
-    OPG = "opg"           # At the open
-    CLS = "cls"           # At the close
+
+    DAY = "day"  # Valid for the current trading day only
+    GTC = "gtc"  # Good 'til canceled
+    GTD = "gtd"  # Good 'til date
+    IOC = "ioc"  # Immediate or cancel
+    FOK = "fok"  # Fill or kill (all or nothing)
+    OPG = "opg"  # At the open
+    CLS = "cls"  # At the close
 
 
 @dataclass
@@ -99,10 +100,10 @@ class Order:
     # Advanced order fields
     time_in_force: TimeInForce = TimeInForce.DAY
     expire_date: datetime | None = None  # For GTD orders
-    trail_amount: float | None = None    # Absolute trail amount for trailing stops
-    trail_percent: float | None = None   # Percentage trail for trailing stops
-    parent_order_id: str | None = None   # For bracket orders (OCO)
-    oco_group_id: str | None = None      # One-Cancels-Other group
+    trail_amount: float | None = None  # Absolute trail amount for trailing stops
+    trail_percent: float | None = None  # Percentage trail for trailing stops
+    parent_order_id: str | None = None  # For bracket orders (OCO)
+    oco_group_id: str | None = None  # One-Cancels-Other group
 
 
 @dataclass
@@ -113,6 +114,7 @@ class BracketOrder:
     Creates three linked orders where filling the entry order
     activates the profit target and stop loss (OCO pair).
     """
+
     entry_order: Order
     take_profit_order: Order
     stop_loss_order: Order
@@ -203,7 +205,8 @@ class SimulatedBroker:
                 # Clean up OCO group
                 if order.oco_group_id and order.oco_group_id in self.active_oco_groups:
                     self.active_oco_groups[order.oco_group_id] = [
-                        o for o in self.active_oco_groups[order.oco_group_id]
+                        o
+                        for o in self.active_oco_groups[order.oco_group_id]
                         if o.order_id != order_id
                     ]
                 return True
@@ -215,8 +218,7 @@ class SimulatedBroker:
             return
 
         orders_to_cancel = [
-            o.order_id for o in self.active_oco_groups[group_id]
-            if o.order_id != except_order_id
+            o.order_id for o in self.active_oco_groups[group_id] if o.order_id != except_order_id
         ]
 
         for order_id in orders_to_cancel:
@@ -318,10 +320,7 @@ class SimulatedBroker:
 
     def end_of_day(self) -> None:
         """Called at end of trading day to expire DAY orders."""
-        self.pending_orders = [
-            o for o in self.pending_orders
-            if o.time_in_force != TimeInForce.DAY
-        ]
+        self.pending_orders = [o for o in self.pending_orders if o.time_in_force != TimeInForce.DAY]
 
     def _try_fill(self, order: Order, bar: Bar) -> Fill | None:
         """Attempt to fill an order at current bar."""
@@ -392,7 +391,9 @@ class SimulatedBroker:
                 # Convert to market order and fill
                 slippage = self._compute_slippage(order, bar)
                 base_price = order.stop_price
-                fill_price = base_price * (1 + slippage if order.side == OrderSide.BUY else 1 - slippage)
+                fill_price = base_price * (
+                    1 + slippage if order.side == OrderSide.BUY else 1 - slippage
+                )
                 commission = self._compute_commission(order, fill_price)
                 return Fill(
                     order_id=order.order_id,
@@ -459,7 +460,9 @@ class SimulatedBroker:
 
             if triggered:
                 slippage = self._compute_slippage(order, bar)
-                fill_price = stop_price * (1 + slippage if order.side == OrderSide.BUY else 1 - slippage)
+                fill_price = stop_price * (
+                    1 + slippage if order.side == OrderSide.BUY else 1 - slippage
+                )
                 commission = self._compute_commission(order, fill_price)
 
                 # Clean up trailing stop tracking
@@ -789,8 +792,8 @@ class EventDrivenBacktester(BacktestEngine):
             win_rate=win_rate,
             profit_factor=profit_factor,
             avg_trade_return=avg_trade,
-            equity_curve=pd.Series(equity, index=data.index[: len(equity)]),
-            returns=pd.Series(returns, index=data.index[1 : len(returns) + 1]),
+            equity_curve=pd.Series(equity[1:], index=data.index),
+            returns=pd.Series(returns, index=data.index),
             trades=pd.DataFrame(self.trade_history),
             start_date=data.index[0],
             end_date=data.index[-1],

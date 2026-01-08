@@ -167,6 +167,71 @@ class BaseStrategy(ABC):
         return f"{self._name}({params_str})"
 
 
+class PortfolioStrategy(BaseStrategy):
+    """
+    Base class for portfolio strategies that generate target weights.
+
+    Portfolio strategies differ from single-asset strategies:
+    - Instead of signals (1, -1, 0), they generate weight allocations
+    - Weights are per-symbol and sum to 1 (or leverage factor)
+    - Strategies can access the entire universe at once
+
+    Example:
+        >>> class EqualWeightStrategy(PortfolioStrategy):
+        ...     def generate_weights(self, portfolio_data, current_weights=None):
+        ...         n = portfolio_data.n_symbols
+        ...         return np.ones(n) / n
+
+        >>> class MomentumPortfolio(PortfolioStrategy):
+        ...     def __init__(self, lookback=252, top_n=10):
+        ...         super().__init__(lookback=lookback, top_n=top_n)
+        ...         self.lookback = lookback
+        ...         self.top_n = top_n
+        ...
+        ...     def generate_weights(self, portfolio_data, current_weights=None):
+        ...         returns = portfolio_data.returns(self.lookback)
+        ...         momentum = returns.sum(axis=1)
+        ...         top_idx = np.argsort(momentum)[-self.top_n:]
+        ...         weights = np.zeros(portfolio_data.n_symbols)
+        ...         weights[top_idx] = 1.0 / self.top_n
+        ...         return weights
+    """
+
+    def generate_weights(
+        self,
+        portfolio_data: Any,  # PortfolioData
+        current_weights: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """
+        Generate target weights for the portfolio.
+
+        Args:
+            portfolio_data: PortfolioData instance with multi-asset prices
+            current_weights: Current portfolio weights (for drift-aware strategies)
+
+        Returns:
+            Array of target weights, shape (n_symbols,)
+            Weights should sum to 1.0 (or desired leverage)
+        """
+        raise NotImplementedError(
+            f"{self._name} does not implement generate_weights(). "
+            "Override this method to define portfolio allocation logic."
+        )
+
+    def generate_signals(
+        self,
+        close: np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Not used for portfolio strategies - use generate_weights() instead.
+        """
+        raise NotImplementedError(
+            f"{self._name} is a PortfolioStrategy. "
+            "Use generate_weights() instead of generate_signals()."
+        )
+
+
 class MomentumStrategy(BaseStrategy):
     """
     Simple momentum strategy for demonstration.
@@ -233,11 +298,15 @@ class MovingAverageCrossover(BaseStrategy):
         slow_ma = slow_ma[-min_len:]
 
         # Generate signals
-        signals = np.where(fast_ma > slow_ma, 1, -1)
+        raw_signals = np.where(fast_ma > slow_ma, 1, -1)
 
         # Pad to match price length
-        padding = len(close) - len(signals)
-        signals = np.concatenate([np.zeros(padding), signals])
+        # First valid signal is at index slow_period (need slow_period bars to compute first MA)
+        padding = len(close) - len(raw_signals)
+        signals = np.concatenate([np.zeros(padding), raw_signals])
+
+        # Ensure signals during warmup period are zero
+        signals[:self.slow_period] = 0
 
         return signals
 

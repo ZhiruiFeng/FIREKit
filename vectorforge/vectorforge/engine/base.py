@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
@@ -77,6 +77,59 @@ class BacktestResult:
             "Initial Capital": f"${self.initial_capital:,.2f}",
             "Final Capital": f"${self.final_capital:,.2f}",
         }
+
+
+@dataclass
+class PortfolioBacktestResult(BacktestResult):
+    """
+    Extended backtest result for multi-asset portfolios.
+
+    Includes portfolio-specific data like weight history, per-asset returns,
+    rebalance dates, and turnover tracking.
+    """
+
+    # Portfolio-specific time series
+    weights_history: pd.DataFrame = field(default_factory=pd.DataFrame)
+    asset_returns: pd.DataFrame = field(default_factory=pd.DataFrame)
+    asset_contributions: pd.DataFrame = field(default_factory=pd.DataFrame)
+
+    # Rebalancing tracking
+    rebalance_dates: list[date] = field(default_factory=list)
+    turnover_history: pd.Series = field(default_factory=pd.Series)
+
+    # Sector tracking (optional)
+    sector_exposure: pd.DataFrame = field(default_factory=pd.DataFrame)
+
+    # Cash tracking
+    cash_balance: pd.Series = field(default_factory=pd.Series)
+
+    def __repr__(self) -> str:
+        n_symbols = len(self.weights_history.columns) if len(self.weights_history) > 0 else 0
+        n_rebalances = len(self.rebalance_dates)
+        return (
+            f"PortfolioBacktestResult(\n"
+            f"  total_return={self.total_return:.2%},\n"
+            f"  sharpe_ratio={self.sharpe_ratio:.2f},\n"
+            f"  max_drawdown={self.max_drawdown:.2%},\n"
+            f"  symbols={n_symbols},\n"
+            f"  rebalances={n_rebalances}\n"
+            f")"
+        )
+
+    def summary(self) -> dict[str, Any]:
+        """Generate extended summary dictionary."""
+        base = super().summary()
+        n_symbols = len(self.weights_history.columns) if len(self.weights_history) > 0 else 0
+        base.update(
+            {
+                "Symbols": n_symbols,
+                "Rebalances": len(self.rebalance_dates),
+                "Avg Turnover": f"{self.turnover_history.mean():.2%}"
+                if len(self.turnover_history) > 0
+                else "N/A",
+            }
+        )
+        return base
 
 
 StrategyT = TypeVar("StrategyT", bound="BaseStrategy")

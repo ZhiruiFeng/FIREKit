@@ -10,24 +10,20 @@ Tests cover:
 - Hybrid Runner strategy analysis
 """
 
+from datetime import date, datetime, time, timedelta
+
 import numpy as np
-import pandas as pd
-import pytest
-from datetime import date, time, datetime, timedelta
 
 # Import v0.2.0 modules
 from vectorforge.engine.accelerated import (
-    numpy_compute_returns,
-    numpy_compute_metrics,
-    numpy_batch_backtest,
-    compute_returns,
-    compute_metrics,
-    batch_backtest,
-    get_compute_backend,
-    is_jax_available,
-    is_numba_available,
     BacktestArrays,
     MetricsResult,
+    compute_returns,
+    get_compute_backend,
+    is_jax_available,
+    numpy_batch_backtest,
+    numpy_compute_metrics,
+    numpy_compute_returns,
 )
 
 
@@ -119,11 +115,11 @@ class TestAdvancedOrderTypes:
     def test_stop_order(self, small_ohlcv_data, config):
         """Test stop order execution."""
         from vectorforge.engine.event_driven import (
-            SimulatedBroker,
+            Bar,
             Order,
             OrderSide,
             OrderType,
-            Bar,
+            SimulatedBroker,
         )
 
         broker = SimulatedBroker(config)
@@ -158,11 +154,11 @@ class TestAdvancedOrderTypes:
     def test_stop_limit_order(self, config):
         """Test stop-limit order execution."""
         from vectorforge.engine.event_driven import (
-            SimulatedBroker,
+            Bar,
             Order,
             OrderSide,
             OrderType,
-            Bar,
+            SimulatedBroker,
         )
 
         broker = SimulatedBroker(config)
@@ -197,11 +193,11 @@ class TestAdvancedOrderTypes:
     def test_trailing_stop_order(self, config):
         """Test trailing stop order updates and execution."""
         from vectorforge.engine.event_driven import (
-            SimulatedBroker,
+            Bar,
             Order,
             OrderSide,
             OrderType,
-            Bar,
+            SimulatedBroker,
         )
 
         broker = SimulatedBroker(config)
@@ -222,12 +218,12 @@ class TestAdvancedOrderTypes:
             timestamp=datetime.now(),
             open=100.0,
             high=105.0,  # High sets initial stop at 105 * 0.95 = 99.75
-            low=99.0,
+            low=100.0,  # Low stays above stop price, so not triggered
             close=102.0,
             volume=1000000,
         )
         fills = broker.process_bar(bar1)
-        assert len(fills) == 0  # Not triggered
+        assert len(fills) == 0  # Not triggered (low 100 > stop 99.75)
 
         # Check that stop price was tracked
         assert order.order_id in broker.trailing_stop_prices
@@ -238,11 +234,12 @@ class TestAdvancedOrderTypes:
             timestamp=datetime.now() + timedelta(days=1),
             open=102.0,
             high=110.0,  # New high moves stop to 110 * 0.95 = 104.5
-            low=101.0,
+            low=105.0,  # Low stays above new stop price (104.5)
             close=108.0,
             volume=1000000,
         )
-        broker.process_bar(bar2)
+        fills = broker.process_bar(bar2)
+        assert len(fills) == 0  # Not triggered
 
         # Stop should have moved up
         assert broker.trailing_stop_prices[order.order_id] > 99.75
@@ -265,12 +262,12 @@ class TestAdvancedOrderTypes:
     def test_time_in_force_gtd(self, config):
         """Test GTD (Good Till Date) orders."""
         from vectorforge.engine.event_driven import (
-            SimulatedBroker,
+            Bar,
             Order,
             OrderSide,
             OrderType,
+            SimulatedBroker,
             TimeInForce,
-            Bar,
         )
 
         broker = SimulatedBroker(config)
@@ -307,12 +304,12 @@ class TestAdvancedOrderTypes:
     def test_bracket_order(self, config):
         """Test bracket order (entry + TP + SL)."""
         from vectorforge.engine.event_driven import (
-            SimulatedBroker,
-            Order,
+            Bar,
             BracketOrder,
+            Order,
             OrderSide,
             OrderType,
-            Bar,
+            SimulatedBroker,
         )
 
         broker = SimulatedBroker(config)
@@ -372,7 +369,7 @@ class TestExchangeCalendar:
 
     def test_nyse_calendar_basic(self):
         """Test basic NYSE calendar functionality."""
-        from vectorforge.calendar import get_calendar, list_calendars
+        from vectorforge.calendar import get_calendar
 
         nyse = get_calendar("NYSE")
 
@@ -383,8 +380,9 @@ class TestExchangeCalendar:
 
     def test_is_open(self):
         """Test market open detection."""
-        from vectorforge.calendar import get_calendar
         from zoneinfo import ZoneInfo
+
+        from vectorforge.calendar import get_calendar
 
         nyse = get_calendar("NYSE")
         tz = ZoneInfo("America/New_York")
@@ -427,8 +425,9 @@ class TestExchangeCalendar:
 
     def test_crypto_calendar(self):
         """Test 24/7 crypto calendar."""
-        from vectorforge.calendar import get_calendar
         from zoneinfo import ZoneInfo
+
+        from vectorforge.calendar import get_calendar
 
         crypto = get_calendar("CRYPTO")
 
@@ -495,14 +494,14 @@ class TestHybridRunnerAnalysis:
         assert result is not None
         assert hasattr(result, "sharpe_ratio")
 
-    def test_discrepancy_report(self, momentum_strategy, small_ohlcv_data):
+    def test_discrepancy_report(self, ma_crossover_strategy, small_ohlcv_data):
         """Test discrepancy report generation."""
         from vectorforge.engine.hybrid import HybridRunner
 
         runner = HybridRunner()
 
         report = runner.get_discrepancy_report(
-            momentum_strategy,
+            ma_crossover_strategy,
             small_ohlcv_data,
         )
 
@@ -582,9 +581,9 @@ class TestVectorizedBacktesterV020:
 class TestPerformanceBenchmarks:
     """Basic performance tests to verify acceleration works."""
 
-    def test_vectorized_faster_than_event_driven(self, sample_ohlcv_data, momentum_strategy):
+    def test_vectorized_faster_than_event_driven(self, sample_ohlcv_data, ma_crossover_strategy):
         """Verify vectorized mode is faster than event-driven."""
-        from vectorforge import VectorizedBacktester, EventDrivenBacktester
+        from vectorforge import EventDrivenBacktester, VectorizedBacktester
 
         vec = VectorizedBacktester()
         ed = EventDrivenBacktester()
@@ -593,12 +592,12 @@ class TestPerformanceBenchmarks:
 
         # Vectorized timing
         start = time.perf_counter()
-        vec.run(momentum_strategy, sample_ohlcv_data)
+        vec.run(ma_crossover_strategy, sample_ohlcv_data)
         vec_time = time.perf_counter() - start
 
         # Event-driven timing
         start = time.perf_counter()
-        ed.run(momentum_strategy, sample_ohlcv_data)
+        ed.run(ma_crossover_strategy, sample_ohlcv_data)
         ed_time = time.perf_counter() - start
 
         # Vectorized should be at least 5x faster

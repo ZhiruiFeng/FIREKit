@@ -14,27 +14,26 @@ v0.2.0 Performance Features:
 
 from __future__ import annotations
 
-import mmap
 import tempfile
 import time
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
-from vectorforge.engine.base import BacktestEngine, BacktestResult
 from vectorforge.engine.accelerated import (
-    compute_returns,
-    compute_metrics,
+    BacktestArrays,
+    MetricsResult,
     batch_backtest,
+    compute_metrics,
+    compute_returns,
     get_compute_backend,
     is_jax_available,
     is_numba_available,
-    BacktestArrays,
-    MetricsResult,
 )
+from vectorforge.engine.base import BacktestEngine, BacktestResult, PortfolioBacktestResult
 
 if TYPE_CHECKING:
     from vectorforge.config import VectorForgeConfig
@@ -242,7 +241,7 @@ class VectorizedBacktester(BacktestEngine):
             return data
 
         mmap_path = self._mmap_dir / f"{name}.dat"
-        fp = np.memmap(mmap_path, dtype=data.dtype, mode='w+', shape=data.shape)
+        fp = np.memmap(mmap_path, dtype=data.dtype, mode="w+", shape=data.shape)
         fp[:] = data[:]
         return fp
 
@@ -433,11 +432,13 @@ class VectorizedBacktester(BacktestEngine):
         results = []
         for i, combo in enumerate(combinations):
             params = dict(zip(param_names, combo))
-            results.append({
-                "params": params,
-                "total_return": float(total_returns[i]),
-                "sharpe_ratio": float(sharpe_ratios[i]),
-            })
+            results.append(
+                {
+                    "params": params,
+                    "total_return": float(total_returns[i]),
+                    "sharpe_ratio": float(sharpe_ratios[i]),
+                }
+            )
 
         return results
 
@@ -566,4 +567,218 @@ class VectorizedBacktester(BacktestEngine):
             final_capital=equity_curve[-1],
             execution_time=execution_time,
             mode="vectorized",
+        )
+
+    def run_portfolio(
+        self,
+        strategy: Any,  # TargetWeights or PortfolioStrategy
+        data: Any,  # PortfolioData
+        initial_capital: float | None = None,
+        rebalancer: Any | None = None,  # Rebalancer
+    ) -> PortfolioBacktestResult:
+        """
+        Run portfolio backtest with multi-asset data.
+
+        Args:
+            strategy: TargetWeights or PortfolioStrategy providing target weights
+            data: PortfolioData with multi-symbol OHLCV
+            initial_capital: Starting capital
+            rebalancer: Optional Rebalancer for periodic rebalancing
+
+        Returns:
+            PortfolioBacktestResult with portfolio-level metrics
+        """
+        from vectorforge.portfolio.signals import TargetWeights
+        from vectorforge.strategy.base import PortfolioStrategy
+
+        start_time = time.perf_counter()
+        capital = initial_capital or self.config.default_capital
+
+        # Get target weights
+        if isinstance(strategy, TargetWeights):
+            target_weights = strategy
+        elif isinstance(strategy, PortfolioStrategy):
+            # Generate weights from strategy
+            weights_array = strategy.generate_weights(data)
+            target_weights = TargetWeights.from_array(
+                weights=np.tile(weights_array.reshape(-1, 1), (1, data.n_dates)),
+                symbols=data.symbols,
+                dates=data.dates,
+            )
+        else:
+            raise ValueError(
+                f"strategy must be TargetWeights or PortfolioStrategy, got {type(strategy)}"
+            )
+
+        # Get price data and returns
+        close_prices = data.close()  # (n_symbols, n_dates)
+        asset_returns = data.returns()  # (n_symbols, n_dates - 1)
+
+        n_symbols = data.n_symbols
+        n_dates = data.n_dates
+
+        # Initialize tracking arrays
+        weights_history = np.zeros((n_symbols, n_dates))
+        portfolio_returns = np.zeros(n_dates - 1)
+        asset_contributions = np.zeros((n_symbols, n_dates - 1))
+        rebalance_dates: list = []
+        turnover_values: list = []
+
+        # Start with target weights at t=0
+        current_weights = target_weights.weights[:, 0].copy()
+        weights_history[:, 0] = current_weights
+
+        # Simulate portfolio
+        for t in range(1, n_dates):
+            # Get target weights for this date
+            target_w = target_weights.weights[:, min(t, target_weights.n_dates - 1)]
+
+            # Handle NaN in target weights (set to 0)
+            target_w = np.nan_to_num(target_w, nan=0.0)
+
+            # Check if we should rebalance
+            should_rebalance = False
+            if rebalancer is not None:
+                # Use rebalancer logic
+                current_date = (
+                    data.dates[t].date() if hasattr(data.dates[t], "date") else data.dates[t]
+                )
+                last_rebalance = rebalance_dates[-1] if rebalance_dates else None
+                current_weights_dict = {
+                    data.symbols[i]: current_weights[i] for i in range(n_symbols)
+                }
+                target_weights_dict = {data.symbols[i]: target_w[i] for i in range(n_symbols)}
+                should_rebalance = rebalancer.trigger.should_rebalance(
+                    current_date, current_weights_dict, target_weights_dict, last_rebalance
+                )
+            else:
+                # Rebalance when target changes significantly
+                weight_diff = np.abs(target_w - current_weights).sum()
+                should_rebalance = weight_diff > 0.01
+
+            if should_rebalance:
+                # Calculate turnover
+                turnover = np.abs(target_w - current_weights).sum() / 2
+                turnover_values.append(turnover)
+
+                # Apply turnover limit if rebalancer specified
+                if rebalancer is not None and rebalancer.turnover_limit is not None:
+                    if turnover > rebalancer.turnover_limit:
+                        # Scale down trades to meet limit
+                        scale = rebalancer.turnover_limit / turnover
+                        new_weights = current_weights + scale * (target_w - current_weights)
+                        target_w = new_weights
+
+                current_weights = target_w.copy()
+                current_date = (
+                    data.dates[t].date() if hasattr(data.dates[t], "date") else data.dates[t]
+                )
+                rebalance_dates.append(current_date)
+
+            # Compute portfolio return for this period
+            period_returns = asset_returns[:, t - 1]  # Returns from t-1 to t
+
+            # Handle NaN returns
+            period_returns = np.nan_to_num(period_returns, nan=0.0)
+
+            # Portfolio return = sum(weight * return)
+            portfolio_ret = np.sum(current_weights * period_returns)
+            portfolio_returns[t - 1] = portfolio_ret
+
+            # Track contributions
+            asset_contributions[:, t - 1] = current_weights * period_returns
+
+            # Update weights based on returns (drift)
+            new_weights = current_weights * (1 + period_returns)
+            weight_sum = new_weights.sum()
+            if weight_sum > 0:
+                current_weights = new_weights / weight_sum
+            weights_history[:, t] = current_weights
+
+        # Compute equity curve
+        equity_curve = capital * np.cumprod(1 + portfolio_returns)
+        equity_curve = np.insert(equity_curve, 0, capital)  # Add initial capital
+
+        # Compute portfolio metrics
+        total_return = equity_curve[-1] / capital - 1
+        n_years = (n_dates - 1) / 252
+        annual_return = (1 + total_return) ** (1 / max(n_years, 0.01)) - 1
+
+        # Risk metrics
+        daily_std = np.std(portfolio_returns)
+        sharpe = np.mean(portfolio_returns) / max(daily_std, 1e-10) * np.sqrt(252)
+
+        downside = portfolio_returns[portfolio_returns < 0]
+        downside_std = np.std(downside) if len(downside) > 0 else 1e-10
+        sortino = np.mean(portfolio_returns) / max(downside_std, 1e-10) * np.sqrt(252)
+
+        # Drawdown
+        running_max = np.maximum.accumulate(equity_curve)
+        drawdowns = equity_curve / running_max - 1
+        max_drawdown = np.min(drawdowns)
+        calmar = annual_return / max(abs(max_drawdown), 1e-10)
+
+        # Trade statistics
+        total_trades = len(rebalance_dates) * n_symbols  # Approximate
+        winning_periods = portfolio_returns > 0
+        win_rate = np.mean(winning_periods) if len(portfolio_returns) > 0 else 0
+
+        gains = np.sum(portfolio_returns[portfolio_returns > 0])
+        losses = np.abs(np.sum(portfolio_returns[portfolio_returns < 0]))
+        profit_factor = gains / max(losses, 1e-10)
+
+        avg_trade = np.mean(portfolio_returns) if len(portfolio_returns) > 0 else 0
+
+        # Build DataFrames
+        weights_df = pd.DataFrame(
+            weights_history.T,
+            index=data.dates,
+            columns=data.symbols,
+        )
+
+        asset_returns_df = pd.DataFrame(
+            asset_returns.T,
+            index=data.dates[1:],
+            columns=data.symbols,
+        )
+
+        contributions_df = pd.DataFrame(
+            asset_contributions.T,
+            index=data.dates[1:],
+            columns=data.symbols,
+        )
+
+        turnover_series = pd.Series(
+            turnover_values,
+            index=pd.DatetimeIndex([pd.Timestamp(d) for d in rebalance_dates])
+            if rebalance_dates
+            else pd.DatetimeIndex([]),
+        )
+
+        execution_time = time.perf_counter() - start_time
+
+        return PortfolioBacktestResult(
+            total_return=total_return,
+            annual_return=annual_return,
+            sharpe_ratio=sharpe,
+            sortino_ratio=sortino,
+            calmar_ratio=calmar,
+            max_drawdown=max_drawdown,
+            total_trades=total_trades,
+            win_rate=win_rate,
+            profit_factor=profit_factor,
+            avg_trade_return=avg_trade,
+            equity_curve=pd.Series(equity_curve, index=data.dates),
+            returns=pd.Series(portfolio_returns, index=data.dates[1:]),
+            start_date=data.dates[0],
+            end_date=data.dates[-1],
+            initial_capital=capital,
+            final_capital=float(equity_curve[-1]),
+            execution_time=execution_time,
+            mode="vectorized_portfolio",
+            weights_history=weights_df,
+            asset_returns=asset_returns_df,
+            asset_contributions=contributions_df,
+            rebalance_dates=rebalance_dates,
+            turnover_history=turnover_series,
         )
