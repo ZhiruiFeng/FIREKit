@@ -22,13 +22,18 @@ Example:
 
 from vectorforge.analysis.metrics import PerformanceMetrics
 from vectorforge.config import VectorForgeConfig
-from vectorforge.engine.base import BacktestEngine
+from vectorforge.engine.base import BacktestEngine, PortfolioBacktestResult
 from vectorforge.engine.event_driven import EventDrivenBacktester
 from vectorforge.engine.hybrid import HybridRunner
 from vectorforge.engine.vectorized import VectorizedBacktester
-from vectorforge.strategy.base import BaseStrategy
+from vectorforge.portfolio.corporate_actions import Dividend, Split
+from vectorforge.portfolio.data import MissingDataPolicy, PortfolioData, SymbolMetadata
+from vectorforge.portfolio.metrics import PortfolioMetrics
+from vectorforge.portfolio.rebalancer import RebalanceFrequency, Rebalancer
+from vectorforge.portfolio.signals import CrossSectionalSignal, SignalResult, TargetWeights
+from vectorforge.strategy.base import BaseStrategy, PortfolioStrategy
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 __author__ = "FIREKit Team"
 
 __all__ = [
@@ -37,10 +42,28 @@ __all__ = [
     "VectorizedBacktester",
     "EventDrivenBacktester",
     "HybridRunner",
+    "PortfolioBacktestResult",
     # Strategy
     "BaseStrategy",
+    "PortfolioStrategy",
     # Analysis
     "PerformanceMetrics",
     # Config
     "VectorForgeConfig",
+    # Portfolio (v0.3.0)
+    "PortfolioData",
+    "MissingDataPolicy",
+    "SymbolMetadata",
+    # Signals (v0.3.0)
+    "CrossSectionalSignal",
+    "SignalResult",
+    "TargetWeights",
+    # Rebalancing (v0.3.0)
+    "Rebalancer",
+    "RebalanceFrequency",
+    # Metrics (v0.3.0)
+    "PortfolioMetrics",
+    # Corporate Actions (v0.3.0)
+    "Split",
+    "Dividend",
 ]

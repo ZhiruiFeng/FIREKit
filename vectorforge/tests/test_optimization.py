@@ -71,6 +71,7 @@ class TestWalkForwardOptimizer:
             engine=engine,
             train_period=100,
             test_period=30,
+            min_trades=1,  # Low threshold for test data
         )
 
     def test_basic_run(self, wfo, sample_ohlcv_data):

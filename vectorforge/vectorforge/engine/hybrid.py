@@ -13,8 +13,8 @@ v0.2.0 Features:
 
 from __future__ import annotations
 
-import inspect
 import ast
+import inspect
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -33,15 +33,17 @@ if TYPE_CHECKING:
 
 class StrategyComplexity(Enum):
     """Strategy complexity levels."""
-    SIMPLE = "simple"           # Pure signal generation, no state
-    MODERATE = "moderate"       # Some state, but vectorizable
-    COMPLEX = "complex"         # Requires event-driven execution
+
+    SIMPLE = "simple"  # Pure signal generation, no state
+    MODERATE = "moderate"  # Some state, but vectorizable
+    COMPLEX = "complex"  # Requires event-driven execution
     UNKNOWN = "unknown"
 
 
 @dataclass
 class StrategyAnalysis:
     """Results of strategy capability analysis."""
+
     supports_vectorized: bool
     supports_event_driven: bool
     complexity: StrategyComplexity
@@ -272,14 +274,10 @@ class HybridRunner(BacktestEngine):
 
         # Check method availability
         has_generate_signals = hasattr(strategy, "generate_signals") and callable(
-            getattr(strategy, "generate_signals")
+            strategy.generate_signals
         )
-        has_on_bar = hasattr(strategy, "on_bar") and callable(
-            getattr(strategy, "on_bar")
-        )
-        has_on_fill = hasattr(strategy, "on_fill") and callable(
-            getattr(strategy, "on_fill")
-        )
+        has_on_bar = hasattr(strategy, "on_bar") and callable(strategy.on_bar)
+        has_on_fill = hasattr(strategy, "on_fill") and callable(strategy.on_fill)
 
         supports_vectorized = has_generate_signals
         supports_event_driven = has_on_bar

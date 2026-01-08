@@ -149,6 +149,33 @@ class ValidationConfig(BaseModel):
     cross_validation: CrossValidationConfig = Field(default_factory=CrossValidationConfig)
 
 
+class PortfolioConfig(BaseModel):
+    """Configuration for portfolio backtesting (v0.3.0)."""
+
+    max_symbols: int = Field(
+        default=1000, ge=1, description="Maximum number of symbols in portfolio"
+    )
+    default_rebalance_frequency: str = Field(
+        default="monthly", description="Default rebalancing frequency"
+    )
+    max_turnover: float = Field(
+        default=1.0, ge=0, le=2.0, description="Maximum turnover per rebalance (1.0 = 100%)"
+    )
+    drift_threshold: float = Field(
+        default=0.05, ge=0, le=1.0, description="Threshold for drift-based rebalancing"
+    )
+    apply_corporate_actions: bool = Field(
+        default=True, description="Whether to adjust for splits/dividends"
+    )
+    dividend_reinvestment: bool = Field(
+        default=False, description="Whether to reinvest dividends (DRIP)"
+    )
+    min_weight: float = Field(default=0.0, ge=0, le=1.0, description="Minimum position weight")
+    max_weight: float = Field(
+        default=1.0, ge=0, le=1.0, description="Maximum position weight (concentration limit)"
+    )
+
+
 class VectorForgeConfig(BaseModel):
     """Main VectorForge configuration."""
 
@@ -159,6 +186,7 @@ class VectorForgeConfig(BaseModel):
     event_driven: EventDrivenConfig = Field(default_factory=EventDrivenConfig)
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     validation: ValidationConfig = Field(default_factory=ValidationConfig)
+    portfolio: PortfolioConfig = Field(default_factory=PortfolioConfig)
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> VectorForgeConfig:

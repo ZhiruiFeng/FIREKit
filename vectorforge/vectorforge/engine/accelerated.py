@@ -7,7 +7,8 @@ Provides JIT-compiled functions for vectorized operations.
 
 from __future__ import annotations
 
-from typing import Callable, Tuple, NamedTuple
+from typing import NamedTuple
+
 import numpy as np
 
 # Type alias for arrays (supports both numpy and jax arrays)
@@ -16,6 +17,7 @@ Array = np.ndarray
 
 class BacktestArrays(NamedTuple):
     """Container for backtest computation arrays."""
+
     returns: Array
     equity_curve: Array
     signals: Array
@@ -25,6 +27,7 @@ class BacktestArrays(NamedTuple):
 
 class MetricsResult(NamedTuple):
     """Container for computed metrics."""
+
     total_return: float
     annual_return: float
     sharpe_ratio: float
@@ -39,6 +42,7 @@ class MetricsResult(NamedTuple):
 # ============================================================================
 # NumPy Implementation (Fallback)
 # ============================================================================
+
 
 def numpy_compute_returns(
     prices: np.ndarray,
@@ -64,7 +68,7 @@ def numpy_compute_returns(
     # Align signals with future returns
     aligned_signals = signals[:-1] if len(signals) == len(prices) else signals
     if len(aligned_signals) > len(price_returns):
-        aligned_signals = aligned_signals[:len(price_returns)]
+        aligned_signals = aligned_signals[: len(price_returns)]
 
     # Compute trades (position changes)
     trades = np.diff(np.concatenate([[0], aligned_signals]))
@@ -74,11 +78,11 @@ def numpy_compute_returns(
     commission = np.abs(trades) * commission_pct
     costs = slippage + commission
     if len(costs) > len(price_returns):
-        costs = costs[:len(price_returns)]
+        costs = costs[: len(price_returns)]
 
     # Strategy returns
-    strategy_returns = aligned_signals * price_returns[:len(aligned_signals)]
-    strategy_returns = strategy_returns - costs[:len(strategy_returns)]
+    strategy_returns = aligned_signals * price_returns[: len(aligned_signals)]
+    strategy_returns = strategy_returns - costs[: len(strategy_returns)]
 
     # Equity curve
     equity_multiplier = np.cumprod(1 + strategy_returns)
@@ -172,7 +176,7 @@ def numpy_batch_backtest(
     signal_batches: np.ndarray,
     slippage_bps: float = 5.0,
     commission_pct: float = 0.001,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Run batch backtests using NumPy broadcasting.
 
@@ -193,7 +197,7 @@ def numpy_batch_backtest(
     # Align signals
     aligned_signals = signal_batches[:, :-1]
     if aligned_signals.shape[1] > len(price_returns):
-        aligned_signals = aligned_signals[:, :len(price_returns)]
+        aligned_signals = aligned_signals[:, : len(price_returns)]
 
     # Trades
     zeros = np.zeros((n_combos, 1))
@@ -202,11 +206,11 @@ def numpy_batch_backtest(
     # Costs (broadcast across all combos)
     costs = np.abs(trades) * (slippage_bps / 10000 + commission_pct)
     if costs.shape[1] > len(price_returns):
-        costs = costs[:, :len(price_returns)]
+        costs = costs[:, : len(price_returns)]
 
     # Strategy returns (broadcast price_returns across all combos)
-    strategy_returns = aligned_signals * price_returns[np.newaxis, :aligned_signals.shape[1]]
-    strategy_returns = strategy_returns - costs[:, :strategy_returns.shape[1]]
+    strategy_returns = aligned_signals * price_returns[np.newaxis, : aligned_signals.shape[1]]
+    strategy_returns = strategy_returns - costs[:, : strategy_returns.shape[1]]
 
     # Compute metrics for each combo
     sharpe_ratios = np.zeros(n_combos)
@@ -244,7 +248,7 @@ try:
         signals: jnp.ndarray,
         slippage_bps: float,
         commission_pct: float,
-    ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    ) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
         """JIT-compiled return computation."""
         # Price returns
         price_returns = jnp.diff(prices) / prices[:-1]
@@ -273,7 +277,7 @@ try:
     def _jax_compute_metrics_impl(
         returns: jnp.ndarray,
         equity_curve: jnp.ndarray,
-    ) -> Tuple[float, float, float, float, float]:
+    ) -> tuple[float, float, float, float, float]:
         """JIT-compiled metrics computation."""
         # Total return
         total_return = equity_curve[-1] / equity_curve[0] - 1
@@ -294,7 +298,9 @@ try:
 
         # Sortino (simplified - full downside computation not JIT-friendly)
         negative_mask = returns < 0
-        downside_var = jnp.sum(jnp.where(negative_mask, returns ** 2, 0)) / jnp.maximum(jnp.sum(negative_mask), 1)
+        downside_var = jnp.sum(jnp.where(negative_mask, returns**2, 0)) / jnp.maximum(
+            jnp.sum(negative_mask), 1
+        )
         downside_std = jnp.sqrt(downside_var)
         sortino = mean_ret / jnp.maximum(downside_std, 1e-10) * jnp.sqrt(252)
 
@@ -306,9 +312,11 @@ try:
         signals: jnp.ndarray,
         slippage_bps: float,
         commission_pct: float,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Single backtest returning (total_return, sharpe)."""
-        returns, equity, _ = _jax_compute_returns_impl(prices, signals, slippage_bps, commission_pct)
+        returns, equity, _ = _jax_compute_returns_impl(
+            prices, signals, slippage_bps, commission_pct
+        )
         total_ret, _, sharpe, _, _ = _jax_compute_metrics_impl(returns, equity)
         return total_ret, sharpe
 
@@ -379,7 +387,7 @@ try:
         signal_batches: np.ndarray,
         slippage_bps: float = 5.0,
         commission_pct: float = 0.001,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Run batch backtests using JAX vmap for GPU parallelization.
 
@@ -430,7 +438,7 @@ try:
         signals: np.ndarray,
         slippage_bps: float,
         commission_pct: float,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Numba-compiled return computation."""
         n = len(prices) - 1
 
@@ -462,7 +470,7 @@ try:
             strategy_returns[i] = sig * price_returns[i] - cost
 
             # Update equity
-            equity *= (1 + strategy_returns[i])
+            equity *= 1 + strategy_returns[i]
             equity_curve[i + 1] = equity
 
             prev_signal = sig
@@ -473,7 +481,7 @@ try:
     def _numba_compute_metrics_impl(
         returns: np.ndarray,
         equity_curve: np.ndarray,
-    ) -> Tuple[float, float, float, float, float, float, float, float]:
+    ) -> tuple[float, float, float, float, float, float, float, float]:
         """Numba-compiled metrics computation."""
         n = len(returns)
         if n == 0:
@@ -496,10 +504,10 @@ try:
         for i in range(n):
             variance += (returns[i] - mean_ret) ** 2
         variance /= n
-        std_ret = variance ** 0.5
+        std_ret = variance**0.5
 
         # Sharpe ratio
-        sharpe = mean_ret / max(std_ret, 1e-10) * (252 ** 0.5)
+        sharpe = mean_ret / max(std_ret, 1e-10) * (252**0.5)
 
         # Downside std for Sortino
         downside_sum = 0.0
@@ -513,7 +521,7 @@ try:
         if downside_count > 0:
             downside_std = (downside_sum / downside_count) ** 0.5
 
-        sortino = mean_ret / max(downside_std, 1e-10) * (252 ** 0.5)
+        sortino = mean_ret / max(downside_std, 1e-10) * (252**0.5)
 
         # Max drawdown
         running_max = equity_curve[0]
@@ -550,7 +558,7 @@ try:
         signal_batches: np.ndarray,
         slippage_bps: float,
         commission_pct: float,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Numba-compiled parallel batch backtest."""
         n_combos = signal_batches.shape[0]
         total_returns = np.empty(n_combos)
@@ -616,7 +624,7 @@ try:
         signal_batches: np.ndarray,
         slippage_bps: float = 5.0,
         commission_pct: float = 0.001,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Numba-accelerated parallel batch backtest."""
         return _numba_batch_backtest_impl(
             prices.astype(np.float64),
@@ -635,6 +643,7 @@ except ImportError:
 # ============================================================================
 # Backend Selection
 # ============================================================================
+
 
 def get_compute_backend(backend: str = "auto") -> str:
     """
@@ -726,7 +735,7 @@ def batch_backtest(
     slippage_bps: float = 5.0,
     commission_pct: float = 0.001,
     backend: str = "auto",
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Run batch backtests using the best available backend.
 
@@ -754,7 +763,10 @@ def batch_backtest(
             commission_pct,
         )
     else:
-        return numpy_batch_backtest(prices, signal_batches, slippage_bps, commission_pct)
+        # numpy_batch_backtest returns (strategy_returns, metrics_2d)
+        # Extract total_returns and sharpe_ratios to match other backends
+        _, metrics = numpy_batch_backtest(prices, signal_batches, slippage_bps, commission_pct)
+        return metrics[:, 0], metrics[:, 1]
 
 
 def is_jax_available() -> bool:

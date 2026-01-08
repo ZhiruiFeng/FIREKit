@@ -72,6 +72,9 @@ class PurgedKFold:
         """
         Generate train/test indices for each fold.
 
+        Uses walk-forward approach: for each fold, training data comes before
+        test data with an embargo gap. Each successive fold has more training data.
+
         Args:
             data: Data to split
 
@@ -79,15 +82,20 @@ class PurgedKFold:
             Tuple of (train_indices, test_indices) for each fold
         """
         n_samples = len(data)
-        fold_size = n_samples // self.n_splits
+        # Calculate test size - divide remaining samples (after minimum train) into n_splits
+        min_train_size = max(1, self.embargo_period + self.purge_period + 1)
+        test_size = (n_samples - min_train_size) // self.n_splits
 
         for fold in range(self.n_splits):
-            # Test set for this fold
-            test_start = fold * fold_size
-            test_end = (fold + 1) * fold_size if fold < self.n_splits - 1 else n_samples
+            # Test set starts after enough training data for this fold
+            # Each fold adds one test_size worth of training data
+            test_start = min_train_size + fold * test_size + self.embargo_period + self.purge_period
+            test_end = test_start + test_size
+            if fold == self.n_splits - 1:
+                test_end = n_samples  # Last fold gets remaining samples
 
-            # Training set: everything before test, with embargo
-            train_end = max(0, test_start - self.embargo_period - self.purge_period)
+            # Training set: everything before test, minus embargo/purge
+            train_end = test_start - self.embargo_period - self.purge_period
 
             # Create indices
             train_indices = np.arange(0, train_end)
@@ -155,26 +163,29 @@ class CombinatorialPurgedKFold:
         for test_group_indices in combinations(range(self.n_splits), self.n_test_splits):
             test_indices = np.concatenate([groups[i] for i in test_group_indices])
             test_indices = np.sort(test_indices)
+            test_set = set(test_indices)
 
-            # Training: all groups not in test
+            # Training: all groups not in test, with embargo applied at sample level
             train_group_indices = [i for i in range(self.n_splits) if i not in test_group_indices]
 
-            # Apply embargo
-            test_min = test_indices.min()
-            test_max = test_indices.max()
+            # Collect all training indices and apply embargo
+            all_train = np.concatenate([groups[i] for i in train_group_indices])
 
-            train_indices = []
-            for i in train_group_indices:
-                group = groups[i]
-                # Remove samples too close to test
-                if group.max() < test_min - self.embargo_period:
-                    train_indices.append(group)
-                elif group.min() > test_max + self.embargo_period:
-                    train_indices.append(group)
+            # Apply embargo: remove samples within embargo_period of any test sample
+            if self.embargo_period > 0:
+                # Create embargo zones around test indices
+                embargo_mask = np.ones(len(all_train), dtype=bool)
+                for test_idx in test_indices:
+                    # Mark samples within embargo distance as excluded
+                    distances = np.abs(all_train - test_idx)
+                    embargo_mask &= distances > self.embargo_period
+                train_indices = all_train[embargo_mask]
+            else:
+                train_indices = all_train
 
-            if train_indices:
-                train_indices = np.concatenate(train_indices)
-                train_indices = np.sort(train_indices)
+            train_indices = np.sort(train_indices)
+
+            if len(train_indices) > 0:
                 yield train_indices, test_indices
 
     def get_n_splits(self) -> int:

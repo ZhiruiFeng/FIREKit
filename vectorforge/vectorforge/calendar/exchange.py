@@ -10,10 +10,10 @@ Provides trading calendars for major exchanges with:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
-from typing import Iterator
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -21,6 +21,7 @@ import pandas as pd
 
 class SessionType(Enum):
     """Types of trading sessions."""
+
     PRE_MARKET = "pre_market"
     REGULAR = "regular"
     AFTER_HOURS = "after_hours"
@@ -30,6 +31,7 @@ class SessionType(Enum):
 @dataclass
 class TradingSession:
     """Represents a trading session."""
+
     session_type: SessionType
     start: time
     end: time
@@ -50,6 +52,7 @@ class TradingSession:
 @dataclass
 class MarketHoliday:
     """Represents a market holiday."""
+
     date: date
     name: str
     early_close: bool = False
@@ -68,6 +71,7 @@ class ExchangeCalendar:
     - Early close days
     - Timezone-aware scheduling
     """
+
     name: str
     timezone: str
     regular_open: time
@@ -235,28 +239,34 @@ class ExchangeCalendar:
             return sessions
 
         if self.pre_market_open:
-            sessions.append(TradingSession(
-                session_type=SessionType.PRE_MARKET,
-                start=self.pre_market_open,
-                end=self.regular_open,
-                timezone=self.timezone,
-            ))
+            sessions.append(
+                TradingSession(
+                    session_type=SessionType.PRE_MARKET,
+                    start=self.pre_market_open,
+                    end=self.regular_open,
+                    timezone=self.timezone,
+                )
+            )
 
         close_time = self._early_close_dates.get(d, self.regular_close)
-        sessions.append(TradingSession(
-            session_type=SessionType.REGULAR,
-            start=self.regular_open,
-            end=close_time,
-            timezone=self.timezone,
-        ))
+        sessions.append(
+            TradingSession(
+                session_type=SessionType.REGULAR,
+                start=self.regular_open,
+                end=close_time,
+                timezone=self.timezone,
+            )
+        )
 
         if self.after_hours_close and d not in self._early_close_dates:
-            sessions.append(TradingSession(
-                session_type=SessionType.AFTER_HOURS,
-                start=close_time,
-                end=self.after_hours_close,
-                timezone=self.timezone,
-            ))
+            sessions.append(
+                TradingSession(
+                    session_type=SessionType.AFTER_HOURS,
+                    start=close_time,
+                    end=self.after_hours_close,
+                    timezone=self.timezone,
+                )
+            )
 
         return sessions
 
@@ -270,18 +280,21 @@ class ExchangeCalendar:
         for d in self.trading_days(start, end):
             for session in self.get_sessions(d):
                 start_dt, end_dt = session.to_datetime(d)
-                records.append({
-                    "date": d,
-                    "session": session.session_type.value,
-                    "open": start_dt,
-                    "close": end_dt,
-                })
+                records.append(
+                    {
+                        "date": d,
+                        "session": session.session_type.value,
+                        "open": start_dt,
+                        "close": end_dt,
+                    }
+                )
         return pd.DataFrame(records)
 
 
 # ============================================================================
 # Pre-defined Calendars
 # ============================================================================
+
 
 def _us_holidays_2024_2025() -> list[MarketHoliday]:
     """US market holidays for 2024-2025."""
@@ -294,12 +307,24 @@ def _us_holidays_2024_2025() -> list[MarketHoliday]:
         MarketHoliday(date(2024, 5, 27), "Memorial Day"),
         MarketHoliday(date(2024, 6, 19), "Juneteenth"),
         MarketHoliday(date(2024, 7, 4), "Independence Day"),
-        MarketHoliday(date(2024, 7, 3), "Independence Day (early)", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2024, 7, 3),
+            "Independence Day (early)",
+            early_close=True,
+            early_close_time=time(13, 0),
+        ),
         MarketHoliday(date(2024, 9, 2), "Labor Day"),
         MarketHoliday(date(2024, 11, 28), "Thanksgiving"),
-        MarketHoliday(date(2024, 11, 29), "Day after Thanksgiving", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2024, 11, 29),
+            "Day after Thanksgiving",
+            early_close=True,
+            early_close_time=time(13, 0),
+        ),
         MarketHoliday(date(2024, 12, 25), "Christmas"),
-        MarketHoliday(date(2024, 12, 24), "Christmas Eve", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2024, 12, 24), "Christmas Eve", early_close=True, early_close_time=time(13, 0)
+        ),
         # 2025
         MarketHoliday(date(2025, 1, 1), "New Year's Day"),
         MarketHoliday(date(2025, 1, 20), "MLK Day"),
@@ -308,12 +333,24 @@ def _us_holidays_2024_2025() -> list[MarketHoliday]:
         MarketHoliday(date(2025, 5, 26), "Memorial Day"),
         MarketHoliday(date(2025, 6, 19), "Juneteenth"),
         MarketHoliday(date(2025, 7, 4), "Independence Day"),
-        MarketHoliday(date(2025, 7, 3), "Independence Day (early)", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2025, 7, 3),
+            "Independence Day (early)",
+            early_close=True,
+            early_close_time=time(13, 0),
+        ),
         MarketHoliday(date(2025, 9, 1), "Labor Day"),
         MarketHoliday(date(2025, 11, 27), "Thanksgiving"),
-        MarketHoliday(date(2025, 11, 28), "Day after Thanksgiving", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2025, 11, 28),
+            "Day after Thanksgiving",
+            early_close=True,
+            early_close_time=time(13, 0),
+        ),
         MarketHoliday(date(2025, 12, 25), "Christmas"),
-        MarketHoliday(date(2025, 12, 24), "Christmas Eve", early_close=True, early_close_time=time(13, 0)),
+        MarketHoliday(
+            date(2025, 12, 24), "Christmas Eve", early_close=True, early_close_time=time(13, 0)
+        ),
     ]
 
 
