@@ -4,7 +4,7 @@
   "title": "SignalML",
   "tagline": "ML model hub for trading signal generation",
   "version": "0.1.0",
-  "generated_at": "2026-06-12T01:37:28Z",
+  "generated_at": "2026-06-12T01:50:21Z",
   "status": "ok",
   "summary_metrics": [
     {
@@ -38,7 +38,7 @@
     },
     {
       "label": "Demo runtime",
-      "value": "35.4",
+      "value": "35.2",
       "unit": "s"
     }
   ],
