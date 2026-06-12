@@ -62,25 +62,29 @@ FIREKit is a comprehensive ecosystem of interconnected tools for building AI-pow
 
 Every product is an installable Python package with its own test suite and a
 deterministic demo pipeline that feeds the **[FIREKit Hub](hub/index.html)** —
-a self-contained dashboard visualizing results from all nine products.
+a self-contained dashboard visualizing results from all nine products plus the
+**[end-to-end pipeline](pipeline.py)** that chains them all on one shared universe.
 
 See the full [Ecosystem Overview](docs/ECOSYSTEM_OVERVIEW.md) for architecture details and integration patterns.
 
 ## Quick Start
 
 ```bash
-# Run every product's test suite
-for d in vectorforge datastream alphalab signalml sentimentpulse \
-         deeptrader executioncore riskguard portfolioengine; do
-  (cd "$d" && python3 -m pytest tests -q)
-done
+# Validate everything: environment, imports, ~1000 tests, demos, integration
+python3 validate_all.py
 
 # Run all product demos and build the hub dashboard
 python3 run_all.py
 
+# Run the end-to-end pipeline (all nine products chained on one universe)
+python3 pipeline.py
+
 # View the hub (or just open hub/index.html in a browser)
 python3 -m http.server -d hub 8080
 ```
+
+**New here? Read the [User Manual](docs/MANUAL.md) ([中文版](docs/MANUAL.zh-CN.md))** —
+setup, workflow, per-product guides with working code, and the pipeline walkthrough.
 
 ## Roadmap
 
@@ -147,6 +151,7 @@ python3 -m http.server -d hub 8080   # then open http://localhost:8080
 
 ## Documentation
 
+- [User Manual (English)](docs/MANUAL.md) / [使用手册（中文）](docs/MANUAL.zh-CN.md) - Setup, workflow, per-product guides
 - [Ecosystem Overview](docs/ECOSYSTEM_OVERVIEW.md) - Architecture and integration
 - [VectorForge](docs/products/01_vectorforge.md) - Backtesting engine
 - [DataStream](docs/products/02_datastream.md) - Data pipeline
