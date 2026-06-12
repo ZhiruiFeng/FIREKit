@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIREKit Hub — Ecosystem Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="flame">🔥</span>
+      <div>
+        <h1>FIREKit Hub</h1>
+        <p class="subtitle">AI-powered quantitative trading ecosystem — live results from every product</p>
+      </div>
+    </div>
+    <div class="meta" id="hub-meta"></div>
+  </header>
+
+  <nav class="product-nav" id="product-nav"></nav>
+
+  <main id="dashboard">
+    <div class="empty-state" id="empty-state">
+      <h2>No results loaded</h2>
+      <p>Run <code>python3 run_all.py</code> from the repository root to generate
+      product results, then reload this page.</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>FIREKit — build a set of toolkits for financial freedom.
+    All results generated offline from deterministic, seeded synthetic data.</p>
+  </footer>
+
+  <script src="data/products.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

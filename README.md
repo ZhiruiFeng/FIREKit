@@ -67,6 +67,11 @@ a self-contained dashboard visualizing results from all nine products plus the
 
 See the full [Ecosystem Overview](docs/ECOSYSTEM_OVERVIEW.md) for architecture details and integration patterns.
 
+The **[FIREKit web app](webapp/)** is a Vercel-deployable Next.js site that wraps
+all of the above into one hub: interactive product introductions, live demo
+charts, the user manual (EN/中文), the pipeline walkthrough, and the original
+dashboard at `/dashboard`. See [webapp/README.md](webapp/README.md) to run or deploy it.
+
 ## Quick Start
 
 ```bash
