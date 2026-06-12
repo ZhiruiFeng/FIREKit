@@ -24,9 +24,8 @@ import time
 
 import numpy as np
 
-from vectorforge.portfolio.signals import CrossSectionalSignal
-
 from tests.benchmark.helpers import make_portfolio_data
+from vectorforge.portfolio.signals import CrossSectionalSignal
 
 N_ASSETS = 500
 N_DAYS = 504  # 2 years of business days

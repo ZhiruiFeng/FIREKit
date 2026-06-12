@@ -616,6 +616,10 @@ class VectorizedBacktester(BacktestEngine):
 
         n_symbols = data.n_symbols
         n_dates = data.n_dates
+        # Hoist property accesses: symbols/dates copy their containers on every
+        # access, which turns the per-day dict builds below into O(n_symbols^2)
+        symbols = data.symbols
+        dates = data.dates
 
         # Initialize tracking arrays
         weights_history = np.zeros((n_symbols, n_dates))
@@ -640,14 +644,10 @@ class VectorizedBacktester(BacktestEngine):
             should_rebalance = False
             if rebalancer is not None:
                 # Use rebalancer logic
-                current_date = (
-                    data.dates[t].date() if hasattr(data.dates[t], "date") else data.dates[t]
-                )
+                current_date = dates[t].date() if hasattr(dates[t], "date") else dates[t]
                 last_rebalance = rebalance_dates[-1] if rebalance_dates else None
-                current_weights_dict = {
-                    data.symbols[i]: current_weights[i] for i in range(n_symbols)
-                }
-                target_weights_dict = {data.symbols[i]: target_w[i] for i in range(n_symbols)}
+                current_weights_dict = {symbols[i]: current_weights[i] for i in range(n_symbols)}
+                target_weights_dict = {symbols[i]: target_w[i] for i in range(n_symbols)}
                 should_rebalance = rebalancer.trigger.should_rebalance(
                     current_date, current_weights_dict, target_weights_dict, last_rebalance
                 )
@@ -670,9 +670,7 @@ class VectorizedBacktester(BacktestEngine):
                         target_w = new_weights
 
                 current_weights = target_w.copy()
-                current_date = (
-                    data.dates[t].date() if hasattr(data.dates[t], "date") else data.dates[t]
-                )
+                current_date = dates[t].date() if hasattr(dates[t], "date") else dates[t]
                 rebalance_dates.append(current_date)
 
             # Compute portfolio return for this period

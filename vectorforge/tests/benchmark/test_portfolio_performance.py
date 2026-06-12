@@ -22,12 +22,11 @@ import time
 import numpy as np
 import pytest
 
+from tests.benchmark.helpers import TEN_YEARS_DAYS, make_portfolio_data, make_sector_map
 from vectorforge import VectorizedBacktester
 from vectorforge.portfolio.metrics import PortfolioMetrics
 from vectorforge.portfolio.rebalancer import RebalanceFrequency, Rebalancer
 from vectorforge.portfolio.signals import TargetWeights
-
-from tests.benchmark.helpers import TEN_YEARS_DAYS, make_portfolio_data, make_sector_map
 
 N_ASSETS = 100
 

@@ -32,11 +32,10 @@ import tracemalloc
 import numpy as np
 import pytest
 
+from tests.benchmark.helpers import TEN_YEARS_DAYS, make_portfolio_data
 from vectorforge import VectorizedBacktester
 from vectorforge.portfolio.rebalancer import RebalanceFrequency, Rebalancer
 from vectorforge.portfolio.signals import TargetWeights
-
-from tests.benchmark.helpers import TEN_YEARS_DAYS, make_portfolio_data
 
 SC008_TARGET_BYTES = 4 * 1024**3  # 4 GB
 SC004_LINEAR_TOLERANCE = 3.0  # allow up to 3x of linear extrapolation
@@ -103,16 +102,6 @@ class TestSC008MemoryUsage:
 class TestSC004Scaling:
     """SC-004: 100 -> 500 -> 1000 asset scaling no worse than ~linear (3x slack)."""
 
-    @pytest.mark.xfail(
-        reason=(
-            "PERF: measured ~0.40s / 3.1s / 12.8s at 100/500/1000 assets "
-            "(10x assets -> ~32x time, ~3.2x worse than linear even with the "
-            "generous 3x tolerance). Root cause: O(n_symbols^2)-per-day dict "
-            "construction via the copying PortfolioData.symbols property in "
-            "VectorizedBacktester.run_portfolio (engine/vectorized.py ~647-650)."
-        ),
-        strict=False,
-    )
     def test_sc004_scaling_100_to_1000_assets_near_linear(self, engine):
         times: dict[int, float] = {}
         for n_assets in (100, 500, 1000):
