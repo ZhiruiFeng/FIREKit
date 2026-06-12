@@ -391,7 +391,7 @@ class TestPortfolioMetricsAttribution:
             index=dates,
         )
         # Portfolio return = weighted asset returns
-        returns = (weights.shift(1).fillna(method="bfill") * asset_returns).sum(axis=1)
+        returns = (weights.shift(1).bfill() * asset_returns).sum(axis=1)
         return PortfolioMetrics(returns, weights, asset_returns)
 
 
