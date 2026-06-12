@@ -9,7 +9,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
+
+if TYPE_CHECKING:
+    from vectorforge.portfolio.data import PortfolioData
 
 
 class CorporateActionType(Enum):

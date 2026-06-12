@@ -1,8 +1,8 @@
 # VectorForge Development Progress
 
-> **Last Updated**: 2026-01-07
-> **Current Version**: v0.2.0
-> **Next Milestone**: v0.3.0 (Multi-Asset Portfolio Support)
+> **Last Updated**: 2026-06-12
+> **Current Version**: v0.3.0
+> **Next Milestone**: v0.4.0 (Validation)
 
 ---
 
@@ -12,13 +12,13 @@
 |-----------|--------|----------|--------|
 | v0.1.0 Foundation | ✅ Complete | 100% | 2025-12-15 |
 | v0.2.0 Performance | ✅ Complete | 100% | 2026-01-07 |
-| v0.3.0 Multi-Asset | 🚧 In Progress | 0% | TBD |
+| v0.3.0 Multi-Asset | ✅ Complete | 100% | 2026-06-12 |
 | v0.4.0 Validation | 📋 Planned | 0% | TBD |
 | v1.0.0 Production | 📋 Planned | 0% | TBD |
 
 ---
 
-## Current Development Focus: v0.3.0 Multi-Asset Portfolio Support
+## v0.3.0 Multi-Asset Portfolio Support (Completed 2026-06-12)
 
 ### Overview
 Enable backtesting strategies across multiple assets simultaneously with proper portfolio-level metrics and rebalancing logic.
@@ -28,40 +28,40 @@ Enable backtesting strategies across multiple assets simultaneously with proper 
 #### 1. Portfolio Data Management
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Multi-symbol OHLCV data structure | ⬜ Not Started | P0 | Core requirement |
-| Synchronized data alignment | ⬜ Not Started | P0 | Handle different trading hours |
-| Missing data / stale price handling | ⬜ Not Started | P0 | Forward-fill, interpolation options |
-| Corporate actions: stock splits | ⬜ Not Started | P1 | Adjustment factor application |
-| Corporate actions: dividends | ⬜ Not Started | P1 | Cash dividend handling |
-| Data validation across symbols | ⬜ Not Started | P1 | Consistency checks |
+| Multi-symbol OHLCV data structure | ✅ Complete | P0 | Core requirement |
+| Synchronized data alignment | ✅ Complete | P0 | Handle different trading hours |
+| Missing data / stale price handling | ✅ Complete | P0 | Forward-fill, interpolation options |
+| Corporate actions: stock splits | ✅ Complete | P1 | Adjustment factor application |
+| Corporate actions: dividends | ✅ Complete | P1 | Cash dividend handling |
+| Data validation across symbols | ✅ Complete | P1 | Consistency checks |
 
 #### 2. Portfolio-Level Signals
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Cross-sectional signal generation | ⬜ Not Started | P0 | Rank-based signals |
-| Relative strength calculations | ⬜ Not Started | P0 | Momentum across universe |
-| Sector/industry groupings | ⬜ Not Started | P1 | Hierarchical classification |
-| Market cap weighting | ⬜ Not Started | P1 | Size-based allocation |
-| Factor exposure calculations | ⬜ Not Started | P2 | Risk factor decomposition |
+| Cross-sectional signal generation | ✅ Complete | P0 | Rank-based signals |
+| Relative strength calculations | ✅ Complete | P0 | Momentum across universe |
+| Sector/industry groupings | ✅ Complete | P1 | Hierarchical classification |
+| Market cap weighting | ✅ Complete | P1 | Size-based allocation |
+| Factor exposure calculations | 📋 Deferred | P2 | Deferred to v0.4.0+ |
 
 #### 3. Rebalancing Logic
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Calendar-based rebalancing | ⬜ Not Started | P0 | Daily/weekly/monthly options |
-| Threshold-based triggers | ⬜ Not Started | P0 | Drift tolerance settings |
-| Transaction cost optimization | ⬜ Not Started | P1 | Minimize turnover costs |
-| Turnover constraints | ⬜ Not Started | P1 | Max daily turnover limits |
-| Tax-lot optimization | ⬜ Not Started | P2 | FIFO/LIFO/specific lot |
+| Calendar-based rebalancing | ✅ Complete | P0 | Daily/weekly/monthly options |
+| Threshold-based triggers | ✅ Complete | P0 | Drift tolerance settings |
+| Transaction cost optimization | ✅ Complete | P1 | Minimize turnover costs |
+| Turnover constraints | ✅ Complete | P1 | Max daily turnover limits |
+| Tax-lot optimization | 📋 Deferred | P2 | Out of scope for v0.3.0 (per spec) |
 
 #### 4. Portfolio Metrics
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Portfolio-level Sharpe/Sortino | ⬜ Not Started | P0 | Aggregate risk-adjusted returns |
-| Correlation matrix tracking | ⬜ Not Started | P0 | Rolling correlations |
-| Sector exposure analysis | ⬜ Not Started | P1 | Allocation breakdown |
-| Diversification ratio | ⬜ Not Started | P1 | Portfolio diversification measure |
-| Concentration metrics | ⬜ Not Started | P1 | HHI, top-N holdings |
-| Beta exposure tracking | ⬜ Not Started | P2 | Market beta over time |
+| Portfolio-level Sharpe/Sortino | ✅ Complete | P0 | Aggregate risk-adjusted returns |
+| Correlation matrix tracking | ✅ Complete | P0 | Rolling correlations |
+| Sector exposure analysis | ✅ Complete | P1 | Allocation breakdown |
+| Diversification ratio | ✅ Complete | P1 | Portfolio diversification measure |
+| Concentration metrics | ✅ Complete | P1 | HHI, top-N holdings |
+| Beta exposure tracking | ✅ Complete | P2 | Market beta over time |
 
 ---
 
@@ -285,7 +285,7 @@ To contribute to VectorForge development:
 |-----------|-------|-----------|----------|
 | v0.1.0 | 25 | 25 | 3 weeks |
 | v0.2.0 | 20 | 20 | 2 weeks |
-| v0.3.0 | ~25 | 0 | Est. 3-4 weeks |
+| v0.3.0 | 91 | 91 | Completed 2026-06-12 |
 
 ### Code Metrics
 | Metric | v0.1.0 | v0.2.0 | Change |
