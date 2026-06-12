@@ -54,7 +54,13 @@ top_decile = signals.top_percentile(10)
 # Convert to equal-weighted portfolio
 weights = top_decile.to_weights(method="equal")
 
-print(f"Selected {len(weights.get_weights_at(weights.dates[0]))} assets")
+# Inspect holdings on a date with valid signals. Momentum needs `lookback`
+# days of history and skips the most recent `skip_recent` days, so signals
+# (and therefore weights) are zero at the very start and end of the period.
+# Unselected assets carry weight 0.0, so count strictly positive weights.
+holdings = weights.get_weights_at(weights.dates[-22])
+n_selected = sum(1 for w in holdings.values() if w > 0)
+print(f"Selected {n_selected} assets")
 ```
 
 ## 3. Sector-Neutral Signal Generation
@@ -117,10 +123,10 @@ hybrid_rebalancer = Rebalancer.hybrid(
 ## 5. Running a Portfolio Backtest
 
 ```python
-from vectorforge import VectorizedEngine
+from vectorforge import VectorizedBacktester
 
 # Create engine
-engine = VectorizedEngine()
+engine = VectorizedBacktester()
 
 # Run portfolio backtest
 result = engine.run_portfolio(
@@ -173,34 +179,35 @@ for attr in attribution[:5]:  # Top 5 contributors
 ## 7. Handling Corporate Actions
 
 ```python
-from vectorforge.portfolio import CorporateAction
+from vectorforge.portfolio import Split, Dividend
 from datetime import date
 
-# Define corporate actions
+# Define corporate actions (CorporateAction is the abstract base class;
+# instantiate the concrete Split / Dividend / Merger / Spinoff subclasses)
 actions = [
-    CorporateAction(
+    Split(
         symbol="AAPL",
-        action_type="split",
-        effective_date=date(2022, 6, 6),
-        adjustment_factor=4.0,  # 4-for-1 split
+        ex_date=date(2022, 6, 6),
+        ratio=4.0,  # 4-for-1 split
     ),
-    CorporateAction(
+    Dividend(
         symbol="AAPL",
-        action_type="dividend",
-        effective_date=date(2023, 2, 10),
-        cash_amount=0.23,
-        reinvest=True,  # Reinvest dividends
+        ex_date=date(2023, 2, 10),
+        amount=0.23,  # Dividend per share
     ),
 ]
 
-# Apply to data
+# Apply to data: historical prices before each ex-date are back-adjusted
+# (splits divide OHLC by the ratio and scale volume; dividends apply a
+# total-return adjustment factor). For dividend reinvestment math, use the
+# Dividend.reinvestment_shares(shares, price) helper.
 adjusted = validated.apply_corporate_actions(actions)
 ```
 
 ## 8. Complete Example: Momentum Strategy
 
 ```python
-from vectorforge import VectorizedEngine
+from vectorforge import VectorizedBacktester
 from vectorforge.portfolio import (
     PortfolioData,
     CrossSectionalSignal,
@@ -228,7 +235,7 @@ rebalancer = Rebalancer.calendar(
 )
 
 # 5. Run backtest
-engine = VectorizedEngine()
+engine = VectorizedBacktester()
 result = engine.run_portfolio(
     strategy=weights,
     data=aligned,
