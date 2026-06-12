@@ -657,9 +657,8 @@ class VectorizedBacktester(BacktestEngine):
                 should_rebalance = weight_diff > 0.01
 
             if should_rebalance:
-                # Calculate turnover
+                # Calculate desired turnover
                 turnover = np.abs(target_w - current_weights).sum() / 2
-                turnover_values.append(turnover)
 
                 # Apply turnover limit if rebalancer specified
                 if rebalancer is not None and rebalancer.turnover_limit is not None:
@@ -668,6 +667,11 @@ class VectorizedBacktester(BacktestEngine):
                         scale = rebalancer.turnover_limit / turnover
                         new_weights = current_weights + scale * (target_w - current_weights)
                         target_w = new_weights
+                        turnover = rebalancer.turnover_limit
+
+                # Record executed (post-constraint) turnover, consistent with
+                # Rebalancer.compute_trades()
+                turnover_values.append(turnover)
 
                 current_weights = target_w.copy()
                 current_date = dates[t].date() if hasattr(dates[t], "date") else dates[t]

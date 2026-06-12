@@ -115,10 +115,10 @@ class TestDriftTrigger:
         assert drifts["B"] == pytest.approx(-0.05)
 
     def test_get_drifts_relative(self):
-        trigger = DriftTrigger(threshold=0.20, measure="relative")
-        drifts = trigger.get_drifts({"A": 0.06}, {"A": 0.05})
-        assert drifts["A"] == pytest.approx(0.2)
-        assert trigger.should_rebalance(date(2023, 1, 5), {"A": 0.06}, {"A": 0.05}, None) is True
+        trigger = DriftTrigger(threshold=0.40, measure="relative")
+        drifts = trigger.get_drifts({"A": 0.075}, {"A": 0.05})
+        assert drifts["A"] == pytest.approx(0.5)
+        assert trigger.should_rebalance(date(2023, 1, 5), {"A": 0.075}, {"A": 0.05}, None) is True
 
     def test_symbol_missing_from_current_counts_as_full_drift(self):
         trigger = DriftTrigger(threshold=0.05)

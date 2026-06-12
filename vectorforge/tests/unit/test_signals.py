@@ -289,8 +289,8 @@ class TestRelativeStrengthSignal:
         rets = (close[:, j] - close[:, j - lookback]) / close[:, j - lookback]
         expected = rets - np.nanmean(rets)
         assert result.values[:, j] == pytest.approx(expected, rel=1e-5)
-        # Average asset signal centers near zero
-        assert np.nanmean(result.values[:, j]) == pytest.approx(0.0, abs=1e-9)
+        # Average asset signal centers near zero (float32 price storage)
+        assert np.nanmean(result.values[:, j]) == pytest.approx(0.0, abs=1e-6)
 
     def test_benchmark_relative_strength(self, growth_data):
         lookback = 20

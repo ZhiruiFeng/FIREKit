@@ -68,3 +68,21 @@
 | SC-008 | < 4 GB for 1,000 assets × 10 yr | 0.17 GB traced peak (0.36 GB RSS) | **PASS** |
 
 Note: SC-005/SC-006 (constraint and corporate-action correctness) are covered by the contract tests in `vectorforge/tests/contract/`, and SC-007 is a usability target; none of these are performance experiments, so they are out of scope for this report.
+
+## Functional Validation
+
+Full suite after all experiment tracks: **419 passed, 0 failed** (`cd vectorforge && python3 -m pytest tests/ -q`).
+
+- **Contract tests** (pre-existing, 197): pass after a pandas 3.x compatibility fix.
+- **Unit tests** (new, `tests/unit/`, 148): exact-value assertions for backtest compounding, ranking methods, all rebalance triggers and turnover capping, HHI == 1/N for equal weights, diversification ratio == √2 for an uncorrelated equal-vol pair, beta == 1.5 for a scaled benchmark, split/dividend/DRIP arithmetic.
+- **Integration tests** (new, `tests/integration/`, 68): 50-symbol momentum backtest end-to-end (US1); ordered-growth universe where the top decile provably selects the two best assets (US2); monthly rebalancing trades only on first trading days with executed turnover == 20% limit within 0.1% (US3 / SC-005); full metrics suite on a sector-tagged backtest (US4); split-adjusted backtest P&L identical to natively continuous data and a $1×100-share dividend crediting exactly $100 (US5 / SC-006).
+
+### Library bugs found and fixed during experiments
+
+1. **O(n²) scaling in `run_portfolio`** (`engine/vectorized.py`): per-day weight dicts indexed the copying `PortfolioData.symbols` property. Fixed by hoisting; 1,000-asset backtest 12.5 s → 1.06 s (SC-004 now passes).
+2. **`turnover_history` reported pre-constraint turnover** (`engine/vectorized.py`): desired turnover was recorded before the turnover limit was applied, so the history could show 1.0 when only 0.20 was traded — inconsistent with `Rebalancer.compute_trades()`. Fixed to record executed turnover; regression test in `tests/integration/test_rebalancer_integration.py`.
+3. **pandas 3.x incompatibility** in a contract-test helper (`fillna(method=)` removed). Fixed.
+
+## Quickstart Validation
+
+`tests/quickstart_validation.py` executes all 8 quickstart.md sections against the real implementation (synthetic GBM data, seed 42): all sections **OK**. Three doc-vs-implementation discrepancies were found and corrected in quickstart.md (non-existent `VectorizedEngine` class → `VectorizedBacktester`; wrong corporate-actions constructor API → `Split`/`Dividend` subclasses; misleading selected-asset count). Reference output of the complete momentum example: total return 50.8%, Sharpe 0.99, max drawdown −21.2%.
