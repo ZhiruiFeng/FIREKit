@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ import pandas as pd
 from datastream.schema import normalize_frame
 
 
-class IssueType(str, Enum):
+class IssueType(StrEnum):
     DUPLICATE_TIMESTAMP = "duplicate_timestamp"
     MISSING_VALUE = "missing_value"
     NONPOSITIVE_PRICE = "nonpositive_price"

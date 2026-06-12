@@ -67,9 +67,12 @@ def run_demo(product_dir: str, package: str) -> tuple[bool, str]:
 def validate(path: Path) -> list[str]:
     """Return a list of schema problems (empty == valid)."""
     problems: list[str] = []
+    def _reject_constant(name: str) -> float:
+        raise ValueError(f"non-finite literal {name} in JSON")
+
     try:
-        payload = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
+        payload = json.loads(path.read_text(), parse_constant=_reject_constant)
+    except (json.JSONDecodeError, OSError, ValueError) as exc:
         return [f"unreadable JSON: {exc}"]
     missing = REQUIRED_KEYS - payload.keys()
     if missing:
@@ -88,8 +91,6 @@ def validate(path: Path) -> list[str]:
                     f"chart {chart.get('id')}: series {series.get('name')!r} "
                     f"length {len(series.get('data', []))} != x length {n_x}"
                 )
-    if "NaN" in path.read_text():
-        problems.append("contains NaN literal (not valid JSON)")
     return problems
 
 
