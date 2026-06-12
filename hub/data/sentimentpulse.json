@@ -4,7 +4,7 @@
   "title": "SentimentPulse",
   "tagline": "Sentiment analysis for financial text",
   "version": "0.1.0",
-  "generated_at": "2026-06-12T01:46:16Z",
+  "generated_at": "2026-06-12T01:47:52Z",
   "status": "ok",
   "summary_metrics": [
     {
@@ -40,7 +40,7 @@
     },
     {
       "label": "Demo runtime",
-      "value": "0.4",
+      "value": "0.3",
       "unit": "s"
     }
   ],
