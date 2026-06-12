@@ -10,3 +10,14 @@ venv/
 
 # Validation outputs
 .validation/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Test/build artifacts
+.pytest_cache/
+.ruff_cache/
+.benchmarks/
+dist/
+*.egg-info/
