@@ -24,14 +24,14 @@ class Agent(ABC):
 
     name: str = "agent"
 
-    def reset(self) -> None:
+    def reset(self) -> None:  # noqa: B027 - optional hook, default no-op
         """Clear per-episode internal state (called at every episode start)."""
 
     @abstractmethod
     def act(self, obs: np.ndarray, explore: bool = False) -> int:
         """Choose an action (0 short, 1 flat, 2 long)."""
 
-    def update(
+    def update(  # noqa: B027 - optional hook, default no-op
         self, obs: np.ndarray, action: int, reward: float, next_obs: np.ndarray, done: bool
     ) -> None:
         """Learn from one transition (no-op for rule-based agents)."""

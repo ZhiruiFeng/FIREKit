@@ -7,6 +7,11 @@
   "use strict";
 
   const PALETTE = ["#5b9cf6", "#ff7a45", "#3fb97f", "#c879e8", "#ffd166"];
+  // SVG chart geometry (used by chartBox and friends below)
+  const W = 460, H = 240;
+  const M = { top: 12, right: 12, bottom: 34, left: 52 };
+  const IW = W - M.left - M.right;
+  const IH = H - M.top - M.bottom;
   // Stack order mirrors the ecosystem architecture, bottom (infra) to top.
   const PRODUCT_ORDER = [
     "vectorforge", "datastream", "alphalab", "signalml", "sentimentpulse",
@@ -105,11 +110,6 @@
   }
 
   /* ---------- SVG charts ---------- */
-
-  const W = 460, H = 240;
-  const M = { top: 12, right: 12, bottom: 34, left: 52 };
-  const IW = W - M.left - M.right;
-  const IH = H - M.top - M.bottom;
 
   function chartBox(c) {
     const box = el("div", { class: "chart-box" });

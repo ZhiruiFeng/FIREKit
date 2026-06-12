@@ -13,8 +13,6 @@ import math
 from datetime import UTC, datetime
 from pathlib import Path
 
-import numpy as np
-
 from deeptrader.agents import (
     Agent,
     BuyAndHoldAgent,
