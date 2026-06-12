@@ -7,12 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for v0.3.0
-- Multi-asset portfolio support
-- Cross-sectional signal generation
-- Rebalancing logic (calendar-based and threshold-based)
-- Corporate actions handling (splits, dividends)
-- Portfolio-level metrics and diversification analysis
+---
+
+## [0.3.0] - 2026-06-12
+
+### Added
+
+#### Multi-Asset Portfolio Support (`vectorforge/portfolio/`)
+- `PortfolioData` container for multi-symbol OHLCV data: NumPy 3D array
+  (symbols × dates × fields, float32) with `from_dict()`/`from_parquet()`
+  constructors, calendar alignment (`align()` with `MissingDataPolicy`
+  forward-fill/interpolate/drop/zero), validation (`validate()` with gap
+  detection), tradeable masks, and per-symbol metadata (`SymbolMetadata`)
+- Cross-sectional signals (`CrossSectionalSignal`): momentum, mean-reversion,
+  volatility, relative-strength, and custom factories; percentile/fractional/
+  ordinal ranking (`RankMethod`); sector-neutral ranking via `group_field`;
+  `SignalResult.top_percentile()/bottom_percentile()` filtering and
+  `to_weights()` with equal/market-cap weighting
+- Rebalancing (`Rebalancer`): composable triggers (`CalendarTrigger`,
+  `DriftTrigger`, `HybridTrigger`), calendar frequencies daily→annual,
+  turnover constraints with largest-deviation prioritization,
+  `compute_trades()` and full-simulation `run()`
+- Portfolio metrics (`PortfolioMetrics`): HHI and top-N concentration,
+  diversification ratio, correlation matrices (static and rolling), portfolio
+  beta, sector exposure time series, per-asset return/risk attribution (MCTR),
+  `from_backtest_result()` factory and `generate_report()`
+- Corporate actions (`CorporateAction`): split adjustment for prices and
+  positions, cash dividends with optional reinvestment (DRIP),
+  `PortfolioData.apply_corporate_actions()`
+- Engine integration: `VectorizedEngine.run_portfolio()` producing
+  `PortfolioBacktestResult` with equity curve, per-asset contributions, and
+  Sharpe/Sortino/drawdown; `PortfolioStrategy` base class with
+  `generate_weights()`
+
+### Changed
+- `scipy` added as a runtime dependency (cross-sectional ranking)
+
+### Fixed
+- pandas 3.x compatibility (`fillna(method=...)` removal)
 
 ---
 

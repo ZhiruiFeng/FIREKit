@@ -48,21 +48,41 @@ FIREKit is a comprehensive ecosystem of interconnected tools for building AI-pow
 
 ## Products
 
-| Product | Description | Priority | Documentation |
-|---------|-------------|----------|---------------|
-| **VectorForge** | High-performance backtesting engine with hybrid vectorized/event-driven architecture | P0 | [View](docs/products/01_vectorforge.md) |
-| **DataStream** | Unified data pipeline for stocks, crypto, and alternative data | P0 | [View](docs/products/02_datastream.md) |
-| **AlphaLab** | Factor mining and feature engineering workbench with Alpha101 | P1 | [View](docs/products/03_alphalab.md) |
-| **SignalML** | ML model hub for signal generation (LightGBM, LSTM, TFT) | P1 | [View](docs/products/04_signalml.md) |
-| **SentimentPulse** | LLM-powered sentiment analysis (FinBERT, GPT-4, FinGPT) | P1 | [View](docs/products/05_sentimentpulse.md) |
-| **DeepTrader** | Reinforcement learning trading agents (PPO, SAC via FinRL) | P2 | [View](docs/products/06_deeptrader.md) |
-| **ExecutionCore** | Live trading and order management (Alpaca, IBKR, CCXT) | P1 | [View](docs/products/07_executioncore.md) |
-| **RiskGuard** | Position sizing (Kelly) and risk management | P0 | [View](docs/products/08_riskguard.md) |
-| **PortfolioEngine** | Asset allocation and portfolio optimization | P2 | [View](docs/products/09_portfolioengine.md) |
+| Product | Description | Status | Code | Documentation |
+|---------|-------------|--------|------|---------------|
+| **VectorForge** | High-performance backtesting engine with hybrid vectorized/event-driven architecture + multi-asset portfolio mode | ✅ v0.3.0 | [vectorforge/](vectorforge/) | [View](docs/products/01_vectorforge.md) |
+| **DataStream** | Unified data pipeline: sources, Parquet store, quality engine, point-in-time universe | ✅ v0.1.0 | [datastream/](datastream/) | [View](docs/products/02_datastream.md) |
+| **AlphaLab** | Factor mining workbench: 20-factor zoo (incl. Alpha101), IC/quantile evaluation | ✅ v0.1.0 | [alphalab/](alphalab/) | [View](docs/products/03_alphalab.md) |
+| **SignalML** | ML signal hub: model zoo, purged walk-forward, ensembles, registry | ✅ v0.1.0 | [signalml/](signalml/) | [View](docs/products/04_signalml.md) |
+| **SentimentPulse** | Financial sentiment: lexicon scorer, pluggable LLM providers, shock detection | ✅ v0.1.0 | [sentimentpulse/](sentimentpulse/) | [View](docs/products/05_sentimentpulse.md) |
+| **DeepTrader** | RL trading agents: trading env, Q-learning + REINFORCE, OOS evaluation | ✅ v0.1.0 | [deeptrader/](deeptrader/) | [View](docs/products/06_deeptrader.md) |
+| **ExecutionCore** | Order management: paper broker, TWAP/VWAP, implementation shortfall analytics | ✅ v0.1.0 | [executioncore/](executioncore/) | [View](docs/products/07_executioncore.md) |
+| **RiskGuard** | Position sizing (Kelly), vol targeting, circuit breaker, VaR/CVaR, limits | ✅ v0.1.0 | [riskguard/](riskguard/) | [View](docs/products/08_riskguard.md) |
+| **PortfolioEngine** | Allocation: min-var/max-Sharpe/risk parity/HRP optimizers, efficient frontier | ✅ v0.1.0 | [portfolioengine/](portfolioengine/) | [View](docs/products/09_portfolioengine.md) |
+
+Every product is an installable Python package with its own test suite and a
+deterministic demo pipeline that feeds the **[FIREKit Hub](hub/index.html)** —
+a self-contained dashboard visualizing results from all nine products.
 
 See the full [Ecosystem Overview](docs/ECOSYSTEM_OVERVIEW.md) for architecture details and integration patterns.
 
 ## Quick Start
+
+```bash
+# Run every product's test suite
+for d in vectorforge datastream alphalab signalml sentimentpulse \
+         deeptrader executioncore riskguard portfolioengine; do
+  (cd "$d" && python3 -m pytest tests -q)
+done
+
+# Run all product demos and build the hub dashboard
+python3 run_all.py
+
+# View the hub (or just open hub/index.html in a browser)
+python3 -m http.server -d hub 8080
+```
+
+## Roadmap
 
 ### Phase 1: Foundation (Months 1-3)
 1. **VectorForge**: Build your first backtest
@@ -114,14 +134,15 @@ See the full [Ecosystem Overview](docs/ECOSYSTEM_OVERVIEW.md) for architecture d
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/FIREKit.git
+git clone https://github.com/ZhiruiFeng/FIREKit.git
 cd FIREKit
 
-# Install dependencies
-pip install -r requirements.txt
+# Install core dependencies
+pip install numpy pandas polars scipy scikit-learn pydantic pyarrow pyyaml pytest
 
-# Start with VectorForge backtesting
-python -m firekit.vectorforge.examples.quickstart
+# Run the whole ecosystem and open the hub dashboard
+python3 run_all.py
+python3 -m http.server -d hub 8080   # then open http://localhost:8080
 ```
 
 ## Documentation
